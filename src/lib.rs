@@ -52,6 +52,7 @@ impl Emulator {
         println!("EIP = {eip:#08X}, Code = {code:#08X}", eip = self.eip, code = code);
 
         match code {
+            0xB8...0xBF => self.mov_r32_imm32(),
             _ => {
                 self.dump_registers();
                 panic!("not implemented");
@@ -63,11 +64,27 @@ impl Emulator {
         self.memory[(self.eip + index) as usize]
     }
 
+    fn get_code32(&self, index: u32) -> u32 {
+        let mut code = 0u32;
+        for i in 0..4 {
+            code |= (self.get_code8(index + i) as u32) << (i * 8);
+        }
+        code
+    }
+
     fn dump_registers(&self) {
         println!("\ndump registers");
         for i in 0..REGISTERS_COUNT {
             println!("{} = {:#08X}", REGISTER_NAMES[i], self.registers[i]);
         }
         println!("EIP = {:#08X}", self.eip);
+    }
+
+    /// Emulate mov instruction.
+    fn mov_r32_imm32(&mut self) {
+        let index = self.get_code8(0) - 0xB8;
+        let value = self.get_code32(1);
+        self.registers[index as usize] = value;
+        self.eip += 5u32;
     }
 }
