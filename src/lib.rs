@@ -1,5 +1,6 @@
 use std::io::Read;
 use std::fs::File;
+use std::num::Wrapping;
 
 const REGISTERS_COUNT: usize = 8;
 const REGISTER_NAMES: [&'static str; REGISTERS_COUNT] = [
@@ -53,6 +54,7 @@ impl Emulator {
 
         match code {
             0xB8...0xBF => self.mov_r32_imm32(),
+            0xEB => self.short_jump(),
             _ => {
                 self.dump_registers();
                 panic!("not implemented");
@@ -86,5 +88,12 @@ impl Emulator {
         let value = self.get_code32(1);
         self.registers[index as usize] = value;
         self.eip += 5u32;
+    }
+
+    /// Emulate short jump instruction.
+    fn short_jump(&mut self) {
+        let diff = self.get_code8(1) as i8;
+        // Allow overflow
+        self.eip = (Wrapping(self.eip) + Wrapping((diff + 2) as u32)).0;
     }
 }
