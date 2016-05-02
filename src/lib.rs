@@ -6,6 +6,7 @@ const REGISTERS_COUNT: usize = 8;
 const REGISTER_NAMES: [&'static str; REGISTERS_COUNT] = [
     "EAX", "ECX", "EDX", "EBX", "ESP", "EBP", "ESI", "EDI"
 ];
+const ESP: usize = 4;
 const MEMORY_SIZE: usize = 1024 * 1024;
 
 #[allow(dead_code)]
@@ -17,13 +18,16 @@ pub struct Emulator {
 }
 
 impl Emulator {
-    pub fn new() -> Emulator {
-        Emulator {
+    pub fn new(eip: u32, esp: u32) -> Emulator {
+        let mut emu = Emulator {
             registers: [0; REGISTERS_COUNT],
             eflags: 0,
             eip: 0,
             memory: [0; MEMORY_SIZE],
-        }
+        };
+        emu.registers[ESP] = esp;
+        emu.eip = eip;
+        emu
     }
 
     pub fn load(&mut self, path: &str) {
