@@ -1,3 +1,6 @@
+use std::io::Read;
+use std::fs::File;
+
 const REGISTERS_COUNT: usize = 8;
 const MEMORY_SIZE: usize = 1024 * 1024;
 
@@ -17,5 +20,12 @@ impl Emulator {
             eip: 0,
             memory: [0; MEMORY_SIZE],
         }
+    }
+
+    pub fn load(&mut self, path: &str) {
+        let mut f = File::open(path)
+            .expect(&format!("failed to read {}", path));
+        f.read(&mut self.memory)
+            .expect(&format!("filed to load {} to memory", path));
     }
 }
