@@ -33,7 +33,7 @@ impl Emulator {
     pub fn load(&mut self, path: &str) {
         let mut f = File::open(path)
             .expect(&format!("failed to read {}", path));
-        f.read(&mut self.memory)
+        f.read(&mut self.memory[(self.eip as usize)..MEMORY_SIZE])
             .expect(&format!("filed to load {} to memory", path));
     }
 
@@ -58,6 +58,7 @@ impl Emulator {
 
         match code {
             0xB8...0xBF => self.mov_r32_imm32(),
+            0xE9 => self.near_jump(),
             0xEB => self.short_jump(),
             _ => {
                 self.dump_registers();
@@ -99,5 +100,11 @@ impl Emulator {
         let diff = self.get_code8(1) as i8;
         // Allow overflow
         self.eip = (Wrapping(self.eip) + Wrapping((diff + 2) as u32)).0;
+    }
+
+    /// Emulate near jump instruction.
+    fn near_jump(&mut self) {
+        let diff = self.get_code32(1) as i32;
+        self.eip = (Wrapping(self.eip) + Wrapping((diff + 5) as u32)).0;
     }
 }
