@@ -28,4 +28,31 @@ impl Emulator {
         f.read(&mut self.memory)
             .expect(&format!("filed to load {} to memory", path));
     }
+
+    pub fn run(&mut self) {
+        let memory_size = self.memory.len() as u32;
+
+        while self.eip < memory_size {
+            self.execute();
+
+            if self.eip == 0 {
+                println!("end of program.");
+                break;
+            }
+        }
+    }
+
+    fn execute(&mut self) {
+        let code = self.get_code8(0);
+
+        println!("EIP = {eip:#08X}, Code = {code:#08X}", eip = self.eip, code = code);
+
+        match code {
+            _ => panic!("not implemented"),
+        }
+    }
+
+    fn get_code8(&self, index: u32) -> u8 {
+        self.memory[(self.eip + index) as usize]
+    }
 }
