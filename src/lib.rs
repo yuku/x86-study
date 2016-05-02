@@ -2,6 +2,9 @@ use std::io::Read;
 use std::fs::File;
 
 const REGISTERS_COUNT: usize = 8;
+const REGISTER_NAMES: [&'static str; REGISTERS_COUNT] = [
+    "EAX", "ECX", "EDX", "EBX", "ESP", "EBP", "ESI", "EDI"
+];
 const MEMORY_SIZE: usize = 1024 * 1024;
 
 #[allow(dead_code)]
@@ -37,6 +40,7 @@ impl Emulator {
 
             if self.eip == 0 {
                 println!("end of program.");
+                self.dump_registers();
                 break;
             }
         }
@@ -48,11 +52,22 @@ impl Emulator {
         println!("EIP = {eip:#08X}, Code = {code:#08X}", eip = self.eip, code = code);
 
         match code {
-            _ => panic!("not implemented"),
+            _ => {
+                self.dump_registers();
+                panic!("not implemented");
+            },
         }
     }
 
     fn get_code8(&self, index: u32) -> u8 {
         self.memory[(self.eip + index) as usize]
+    }
+
+    fn dump_registers(&self) {
+        println!("\ndump registers");
+        for i in 0..REGISTERS_COUNT {
+            println!("{} = {:#08X}", REGISTER_NAMES[i], self.registers[i]);
+        }
+        println!("EIP = {:#08X}", self.eip);
     }
 }
