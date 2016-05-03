@@ -54,7 +54,7 @@ impl Emulator {
     fn execute(&mut self) {
         let code = self.get_code8(0);
 
-        println!("EIP = {eip:#08X}, Code = {code:#08X}", eip = self.eip, code = code);
+        println!("EIP = 0x{eip:08X}, Code = 0x{code:08X}", eip = self.eip, code = code);
 
         match code {
             0xB8...0xBF => self.mov_r32_imm32(),
@@ -82,9 +82,9 @@ impl Emulator {
     fn dump_registers(&self) {
         println!("\ndump registers");
         for i in 0..REGISTERS_COUNT {
-            println!("{} = {:#08X}", REGISTER_NAMES[i], self.registers[i]);
+            println!("{} = 0x{:08X}", REGISTER_NAMES[i], self.registers[i]);
         }
-        println!("EIP = {:#08X}", self.eip);
+        println!("EIP = 0x{:08X}", self.eip);
     }
 
     /// Emulate mov instruction.
