@@ -15,7 +15,7 @@ const MEMORY_SIZE: usize = 1024 * 1024;
 pub struct Emulator {
     registers: [u32; REGISTERS_COUNT],
     eflags: u32,
-    eip: u32,
+    pub eip: u32,
     memory: [u8; MEMORY_SIZE],
 }
 
@@ -59,6 +59,18 @@ impl Emulator {
         }
     }
 
+    pub fn get_code8(&self, index: u32) -> u8 {
+        self.memory[(self.eip + index) as usize]
+    }
+
+    pub fn get_code32(&self, index: u32) -> u32 {
+        let mut code = 0u32;
+        for i in 0..4 {
+            code |= (self.get_code8(index + i) as u32) << (i * 8);
+        }
+        code
+    }
+
     fn execute(&mut self) {
         let code = self.get_code8(0);
 
@@ -75,48 +87,12 @@ impl Emulator {
         }
     }
 
-    fn get_code8(&self, index: u32) -> u8 {
-        self.memory[(self.eip + index) as usize]
-    }
-
-    fn get_code32(&self, index: u32) -> u32 {
-        let mut code = 0u32;
-        for i in 0..4 {
-            code |= (self.get_code8(index + i) as u32) << (i * 8);
-        }
-        code
-    }
-
     fn dump_registers(&self) {
         println!("\ndump registers");
         for i in 0..REGISTERS_COUNT {
             println!("{} = 0x{:08X}", REGISTER_NAMES[i], self.registers[i]);
         }
         println!("EIP = 0x{:08X}", self.eip);
-    }
-
-    fn parse_modrm(&mut self) -> modrm::ModRM {
-        let code = self.get_code8(0);
-
-        let mut modrm = modrm::ModRM::default();
-        modrm.mod_ = (code & 0xC0) >> 6;
-        modrm.reg = (code & 0x38) >> 3;
-        modrm.rm = code & 0x07;
-
-        self.eip += 1;
-
-        if modrm.mod_ != 3 && modrm.rm == 4 {
-            modrm.sib = self.get_code8(0);
-            self.eip += 1;
-        }
-        if modrm.mod_ == 0 && modrm.rm == 5 || modrm.mod_ == 2 {
-            modrm.disp32 = self.get_code32(0);
-            self.eip += 4;
-        } else {
-            modrm.disp8 = self.get_code8(0) as i8;
-            self.eip += 1;
-        }
-        modrm
     }
 
     /// Emulate mov instruction.
