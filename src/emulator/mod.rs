@@ -85,6 +85,7 @@ impl Emulator {
             0xC7 => self.mov_rm32_imm32(),
             0xE9 => self.near_jump(),
             0xEB => self.short_jump(),
+            0xFF => self.code_ff(),
             _ => {
                 self.dump_registers();
                 panic!("not implemented");
@@ -172,11 +173,36 @@ impl Emulator {
         }
     }
 
+    /// Emulate sub instruction.
+    ///
+    /// ```
+    /// sub esp, 16
+    /// ```
     fn sub_rm32_imm8(&mut self, modrm: &modrm::ModRM) {
         let rm32 = self.get_rm32(&modrm);
         let imm8 = self.get_code8(0) as u32;
         self.eip += 1;
         self.set_rm32(&modrm, rm32 - imm8);
+    }
+
+    fn code_ff(&mut self) {
+        self.eip += 1;
+        let modrm = modrm::ModRM::parse(self);
+        if modrm.reg == 0 {
+            self.inc_rm32(&modrm);
+        } else {
+            panic!(format!("not implemented: FF /{}", modrm.reg));
+        }
+    }
+
+    /// Emulate inc instruction.
+    ///
+    /// ```
+    /// inc dword [ebp+4]
+    /// ```
+    fn inc_rm32(&mut self, modrm: &modrm::ModRM) {
+        let value = self.get_rm32(&modrm);
+        self.set_rm32(&modrm, value + 1);
     }
 
     /// Emulate short jump instruction.
