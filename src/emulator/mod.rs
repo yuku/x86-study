@@ -77,6 +77,8 @@ impl Emulator {
         println!("EIP = 0x{eip:08X}, Code = 0x{code:08X}", eip = self.eip, code = code);
 
         match code {
+            0x01 => self.add_rm32_r32(),
+            0x83 => self.code_83(),
             0x89 => self.mov_rm32_r32(),
             0x8B => self.mov_r32_rm32(),
             0xB8...0xBF => self.mov_r32_imm32(),
@@ -145,6 +147,36 @@ impl Emulator {
         let modrm = modrm::ModRM::parse(self);
         let rm32 = self.get_rm32(&modrm);
         self.set_r32(&modrm, rm32);
+    }
+
+    /// Emulate add instruction.
+    ///
+    /// ```
+    /// add dword [ebp+4], eax
+    /// ```
+    fn add_rm32_r32(&mut self) {
+        self.eip += 1;
+        let modrm = modrm::ModRM::parse(self);
+        let r32 = self.get_r32(&modrm);
+        let rm32 = self.get_rm32(&modrm);
+        self.set_rm32(&modrm, r32 + rm32);
+    }
+
+    fn code_83(&mut self) {
+        self.eip += 1;
+        let modrm = modrm::ModRM::parse(self);
+        if modrm.reg == 5 {
+            self.sub_rm32_imm8(&modrm);
+        } else {
+            panic!(format!("not implemented: 83 /{}", modrm.reg));
+        }
+    }
+
+    fn sub_rm32_imm8(&mut self, modrm: &modrm::ModRM) {
+        let rm32 = self.get_rm32(&modrm);
+        let imm8 = self.get_code8(0) as u32;
+        self.eip += 1;
+        self.set_rm32(&modrm, rm32 - imm8);
     }
 
     /// Emulate short jump instruction.
