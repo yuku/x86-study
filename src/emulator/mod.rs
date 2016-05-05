@@ -78,6 +78,7 @@ impl Emulator {
 
         match code {
             0x01 => self.add_rm32_r32(),
+            0x81 => self.code_81(),
             0x83 => self.code_83(),
             0x89 => self.mov_rm32_r32(),
             0x8B => self.mov_r32_rm32(),
@@ -161,6 +162,28 @@ impl Emulator {
         let r32 = self.get_r32(&modrm);
         let rm32 = self.get_rm32(&modrm);
         self.set_rm32(&modrm, r32 + rm32);
+    }
+
+    fn code_81(&mut self) {
+        self.eip += 1;
+        let modrm = modrm::ModRM::parse(self);
+        if modrm.reg == 5 {
+            self.sub_rm32_imm32(&modrm);
+        } else {
+            panic!(format!("not implemented: 81 /{}", modrm.reg));
+        }
+    }
+
+    /// Emulate sub instruction.
+    ///
+    /// ```
+    /// sub esp, 16
+    /// ```
+    fn sub_rm32_imm32(&mut self, modrm: &modrm::ModRM) {
+        let rm32 = self.get_rm32(&modrm);
+        let imm32 = self.get_code32(0);
+        self.eip += 4;
+        self.set_rm32(&modrm, (Wrapping(rm32) - Wrapping(imm32)).0);
     }
 
     fn code_83(&mut self) {
