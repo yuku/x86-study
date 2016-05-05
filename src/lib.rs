@@ -93,6 +93,30 @@ impl Emulator {
         println!("EIP = 0x{:08X}", self.eip);
     }
 
+    fn parse_modrm(&mut self) -> modrm::ModRM {
+        let code = self.get_code8(0);
+
+        let mut modrm = modrm::ModRM::default();
+        modrm.mod_ = (code & 0xC0) >> 6;
+        modrm.reg = (code & 0x38) >> 3;
+        modrm.rm = code & 0x07;
+
+        self.eip += 1;
+
+        if modrm.mod_ != 3 && modrm.rm == 4 {
+            modrm.sib = self.get_code8(0);
+            self.eip += 1;
+        }
+        if modrm.mod_ == 0 && modrm.rm == 5 || modrm.mod_ == 2 {
+            modrm.disp32 = self.get_code32(0);
+            self.eip += 4;
+        } else {
+            modrm.disp8 = self.get_code8(0) as i8;
+            self.eip += 1;
+        }
+        modrm
+    }
+
     /// Emulate mov instruction.
     ///
     /// ```
