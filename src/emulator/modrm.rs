@@ -3,12 +3,12 @@ use emulator::Emulator;
 #[allow(dead_code)]
 #[derive(Default)]
 pub struct ModRM {
-    mod_: u8,
-    reg: u8,
-    rm: u8,
+    pub mod_: u8,
+    pub reg: u8,
+    pub rm: u8,
     sib: u8,
-    disp8: i8,
-    disp32: u32,
+    pub disp8: i8,
+    pub disp32: u32,
 }
 
 impl ModRM {
