@@ -17,14 +17,20 @@ pub struct Emulator {
     memory: [u8; MEMORY_SIZE],
 }
 
+impl Default for Emulator {
+    fn default() -> Self {
+        Emulator {
+            registers: [0; REGISTERS_COUNT],
+            eflags: Default::default(),
+            eip: Default::default(),
+            memory: [0; MEMORY_SIZE],
+        }
+    }
+}
+
 impl Emulator {
     pub fn new(eip: u32, esp: u32) -> Emulator {
-        let mut emu = Emulator {
-            registers: [0; REGISTERS_COUNT],
-            eflags: 0,
-            eip: 0,
-            memory: [0; MEMORY_SIZE],
-        };
+        let mut emu = Emulator::default();
         emu.registers[ESP] = esp;
         emu.eip = eip;
         emu
