@@ -88,6 +88,10 @@ impl Emulator {
     }
 
     /// Emulate mov instruction.
+    ///
+    /// ```
+    /// mov eax, 41
+    /// ```
     fn mov_r32_imm32(&mut self) {
         let index = self.get_code8(0) - 0xB8;
         let value = self.get_code32(1);
@@ -96,6 +100,10 @@ impl Emulator {
     }
 
     /// Emulate short jump instruction.
+    ///
+    /// ```
+    /// jmp short start
+    /// ```
     fn short_jump(&mut self) {
         let diff = self.get_code8(1) as i8;
         // Allow overflow
@@ -103,6 +111,10 @@ impl Emulator {
     }
 
     /// Emulate near jump instruction.
+    ///
+    /// ```
+    /// jmp 0
+    /// ```
     fn near_jump(&mut self) {
         let diff = self.get_code32(1) as i32;
         self.eip = (Wrapping(self.eip) + Wrapping((diff + 5) as u32)).0;
