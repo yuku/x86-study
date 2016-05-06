@@ -10,6 +10,9 @@ const REGISTER_NAMES: [&'static str; REGISTERS_COUNT] = [
 ];
 const EAX: usize = 0;
 const ESP: usize = 4;
+pub const OPCODE_LENGTH: u32 = 1;
+const IMM32_LENGTH: u32 = 4;
+const IMM8_LENGTH: u32 = 1;
 const MEMORY_SIZE: usize = 1024 * 1024;
 
 #[allow(dead_code)]
@@ -75,7 +78,7 @@ impl Emulator {
     fn execute(&mut self) {
         let code = self.get_code8(0);
 
-        println!("EIP = 0x{:08X}, Code = 0x{:02X}", self.eip, code);
+        println!("EAX = 0x{:08X}, EIP = 0x{:08X}, Code = 0x{:02X}", self.get_register32(EAX as u8), self.eip, code);
 
         match code {
             0x01 => self.add_rm32_r32(),
@@ -94,7 +97,6 @@ impl Emulator {
             0x33 => self.xor_r32_rm32(),
             0x35 => self.xor_eax_imm32(),
             0x81 => {
-                self.eip += 1;
                 let modrm = modrm::ModRM::parse(self);
                 match modrm.reg {
                     0 => self.add_rm32_imm32(&modrm),
@@ -106,7 +108,6 @@ impl Emulator {
                 }
             },
             0x83 => {
-                self.eip += 1;
                 let modrm = modrm::ModRM::parse(self);
                 match modrm.reg {
                     0 => self.add_rm32_imm8(&modrm),
@@ -124,7 +125,6 @@ impl Emulator {
             0xE9 => self.near_jump(),
             0xEB => self.short_jump(),
             0xFF => {
-                self.eip += 1;
                 let modrm = modrm::ModRM::parse(self);
                 match modrm.reg {
                     0 => self.inc_rm32(&modrm),
@@ -148,233 +148,228 @@ impl Emulator {
 
     /// 01 /r sz : add r/m32 r32
     fn add_rm32_r32(&mut self) {
-        self.eip += 1;
         let modrm = modrm::ModRM::parse(self);
         let r32 = self.get_r32(&modrm);
         let rm32 = self.get_rm32(&modrm);
         self.set_rm32(&modrm, r32 + rm32);
+        self.eip += OPCODE_LENGTH + modrm.length;
     }
 
     /// 03 /r sz : add r32 r/m32
     fn add_r32_rm32(&mut self) {
-        self.eip += 1;
         let modrm = modrm::ModRM::parse(self);
         let r32 = self.get_r32(&modrm);
         let rm32 = self.get_rm32(&modrm);
         self.set_r32(&modrm, r32 + rm32);
+        self.eip += OPCODE_LENGTH + modrm.length;
     }
 
     /// 05 id sz : add eax imm32
     fn add_eax_imm32(&mut self) {
-        self.eip += 1;
         let eax = self.get_register32(EAX as u8);
-        let imm32 = self.get_code32(0);
-        self.eip += 4;
+        let imm32 = self.get_code32(OPCODE_LENGTH);
         self.set_register32(EAX as u8, eax + imm32);
+        self.eip += OPCODE_LENGTH + IMM32_LENGTH;
     }
 
     /// 09 /r rz : or r/m32 r32
     fn or_rm32_r32(&mut self) {
-        self.eip += 1;
         let modrm = modrm::ModRM::parse(self);
         let rm32 = self.get_rm32(&modrm);
         let r32 = self.get_r32(&modrm);
         self.set_rm32(&modrm, rm32 | r32);
+        self.eip += OPCODE_LENGTH + modrm.length;
     }
 
     /// 0B /r sz : or r32 r/m32
     fn or_r32_rm32(&mut self) {
-        self.eip += 1;
         let modrm = modrm::ModRM::parse(self);
         let r32 = self.get_r32(&modrm);
         let rm32 = self.get_rm32(&modrm);
         self.set_r32(&modrm, r32 | rm32);
+        self.eip += OPCODE_LENGTH + modrm.length;
     }
 
     /// 0D id sz : or eax imm32
     fn or_eax_imm32(&mut self) {
-        self.eip += 1;
         let eax = self.get_register32(EAX as u8);
-        let imm32 = self.get_code32(0);
-        self.eip += 4;
+        let imm32 = self.get_code32(OPCODE_LENGTH);
         self.set_register32(EAX as u8, eax | imm32);
+        self.eip += OPCODE_LENGTH + IMM32_LENGTH;
     }
 
     /// 21 /r sz : and r/m32 r32
     fn and_rm32_r32(&mut self) {
-        self.eip += 1;
         let modrm = modrm::ModRM::parse(self);
         let rm32 = self.get_rm32(&modrm);
         let r32 = self.get_r32(&modrm);
         self.set_rm32(&modrm, rm32 & r32);
+        self.eip += OPCODE_LENGTH + modrm.length;
     }
 
     /// 23 /r sz : and r32 r/m32
     fn and_r32_rm32(&mut self) {
-        self.eip += 1;
         let modrm = modrm::ModRM::parse(self);
         let r32 = self.get_r32(&modrm);
         let rm32 = self.get_rm32(&modrm);
         self.set_r32(&modrm, r32 & rm32);
+        self.eip += OPCODE_LENGTH + modrm.length;
     }
 
     /// 25 id sz : and eax imm32
     fn and_eax_imm32(&mut self) {
-        self.eip += 1;
         let eax = self.get_register32(EAX as u8);
-        let imm32 = self.get_code32(0);
-        self.eip += 4;
+        let imm32 = self.get_code32(OPCODE_LENGTH);
         self.set_register32(EAX as u8, eax & imm32);
+        self.eip += OPCODE_LENGTH + IMM32_LENGTH;
     }
 
     /// 29 /r sz : sub r/m32 r32
     fn sub_rm32_r32(&mut self) {
-        self.eip += 1;
         let modrm = modrm::ModRM::parse(self);
         let rm32 = self.get_rm32(&modrm);
         let r32 = self.get_r32(&modrm);
         self.set_rm32(&modrm, (Wrapping(rm32) - Wrapping(r32)).0);
+        self.eip += OPCODE_LENGTH + modrm.length;
     }
 
     /// 2B /r sz : sub r32 r/m32
     fn sub_r32_rm32(&mut self) {
-        self.eip += 1;
         let modrm = modrm::ModRM::parse(self);
         let r32 = self.get_r32(&modrm);
         let rm32 = self.get_rm32(&modrm);
         self.set_r32(&modrm, (Wrapping(r32) - Wrapping(rm32)).0);
+        self.eip += OPCODE_LENGTH + modrm.length;
     }
 
     /// 2D id sz : sub eax imm32
     fn sub_eax_imm32(&mut self) {
-        self.eip += 1;
         let eax = self.get_register32(EAX as u8);
-        let imm32 = self.get_code32(0);
-        self.eip += 4;
+        let imm32 = self.get_code32(OPCODE_LENGTH);
         self.set_register32(EAX as u8, (Wrapping(eax) - Wrapping(imm32)).0);
+        self.eip += OPCODE_LENGTH + IMM32_LENGTH;
     }
 
     /// 31 /r sz : xor r/m32 r32
     fn xor_rm32_r32(&mut self) {
-        self.eip += 1;
         let modrm = modrm::ModRM::parse(self);
         let rm32 = self.get_rm32(&modrm);
         let r32 = self.get_r32(&modrm);
         self.set_rm32(&modrm, rm32 ^ r32);
+        self.eip += OPCODE_LENGTH + modrm.length;
     }
 
     /// 33 /r sz : xor r32 r/m32
     fn xor_r32_rm32(&mut self) {
-        self.eip += 1;
         let modrm = modrm::ModRM::parse(self);
         let r32 = self.get_r32(&modrm);
         let rm32 = self.get_rm32(&modrm);
         self.set_rm32(&modrm, r32 ^ rm32);
+        self.eip += OPCODE_LENGTH + modrm.length;
     }
 
     /// 35 /r sz : xor eax imm32
     fn xor_eax_imm32(&mut self) {
-        self.eip += 1;
         let eax = self.get_register32(EAX as u8);
-        let imm32 = self.get_code32(0);
-        self.eip += 4;
+        let imm32 = self.get_code32(OPCODE_LENGTH);
         self.set_register32(EAX as u8, eax ^ imm32);
+        self.eip += OPCODE_LENGTH + IMM32_LENGTH;
     }
 
     /// 81 /0 id sz : add r/m32 imm32
     fn add_rm32_imm32(&mut self, modrm: &modrm::ModRM) {
         let rm32 = self.get_rm32(&modrm);
-        let imm32 = self.get_code32(0);
-        self.eip += 4;
+        let imm32 = self.get_code32(OPCODE_LENGTH + modrm.length);
         self.set_rm32(&modrm, (Wrapping(rm32) + Wrapping(imm32)).0);
+        self.eip += OPCODE_LENGTH + modrm.length + IMM32_LENGTH;
     }
 
     /// 81 /1 id sz : or r/m32 imm32
     fn or_rm32_imm32(&mut self, modrm: &modrm::ModRM) {
         let rm32 = self.get_rm32(&modrm);
-        let imm32 = self.get_code32(0);
-        self.eip += 4;
+        let imm32 = self.get_code32(OPCODE_LENGTH + modrm.length);
         self.set_rm32(&modrm, rm32 | imm32);
+        self.eip += OPCODE_LENGTH + modrm.length + IMM32_LENGTH;
     }
 
     /// 81 /4 id sz : and r/m32 imm32
     fn and_rm32_imm32(&mut self, modrm: &modrm::ModRM) {
         let rm32 = self.get_rm32(&modrm);
-        let imm32 = self.get_code32(0);
-        self.eip += 4;
+        let imm32 = self.get_code32(OPCODE_LENGTH + modrm.length);
         self.set_rm32(&modrm, rm32 & imm32);
+        self.eip += OPCODE_LENGTH + modrm.length + IMM32_LENGTH;
     }
 
     /// 81 /5 id sz : sub r/m32 imm32
     fn sub_rm32_imm32(&mut self, modrm: &modrm::ModRM) {
         let rm32 = self.get_rm32(&modrm);
-        let imm32 = self.get_code32(0);
-        self.eip += 4;
+        let imm32 = self.get_code32(OPCODE_LENGTH + modrm.length);
         self.set_rm32(&modrm, (Wrapping(rm32) - Wrapping(imm32)).0);
+        self.eip += OPCODE_LENGTH + modrm.length + IMM32_LENGTH;
     }
 
     /// 81 /6 id sz : xor r/m32 imm32
     fn xor_rm32_imm32(&mut self, modrm: &modrm::ModRM) {
         let rm32 = self.get_rm32(&modrm);
-        let imm32 = self.get_code32(0);
-        self.eip += 4;
+        let imm32 = self.get_code32(OPCODE_LENGTH + modrm.length);
         self.set_rm32(&modrm, rm32 ^ imm32);
+        self.eip += OPCODE_LENGTH + modrm.length + IMM32_LENGTH;
     }
 
     /// 83 /0 ib sz : add r/m32 imm8
     fn add_rm32_imm8(&mut self, modrm: &modrm::ModRM) {
         let rm32 = self.get_rm32(&modrm);
-        let imm8 = self.get_code8(0) as u32;
-        self.eip += 1;
+        let imm8 = self.get_code8(OPCODE_LENGTH + modrm.length) as u32;
         self.set_rm32(&modrm, (Wrapping(rm32) + Wrapping(imm8)).0);
+        self.eip += OPCODE_LENGTH + modrm.length + IMM8_LENGTH;
     }
 
     /// 83 /1 ib sz : or r/m32 imm8
     fn or_rm32_imm8(&mut self, modrm: &modrm::ModRM) {
         let rm32 = self.get_rm32(&modrm);
-        let imm8 = self.get_code8(0) as u32;
-        self.eip += 1;
+        let imm8 = self.get_code8(OPCODE_LENGTH + modrm.length) as u32;
         self.set_rm32(&modrm, rm32 | imm8);
+        self.eip += OPCODE_LENGTH + modrm.length + IMM8_LENGTH;
     }
 
     /// 83 /4 ib sz : and r/m32 imm8
     fn and_rm32_imm8(&mut self, modrm: &modrm::ModRM) {
         let rm32 = self.get_rm32(&modrm);
-        let imm8 = self.get_code8(0) as u32;
-        self.eip += 1;
+        let imm8 = self.get_code8(OPCODE_LENGTH + modrm.length) as u32;
         self.set_rm32(&modrm, rm32 & imm8);
+        self.eip += OPCODE_LENGTH + modrm.length + IMM8_LENGTH;
     }
 
     /// 83 /5 ib sz : sub r/m32 imm8
     fn sub_rm32_imm8(&mut self, modrm: &modrm::ModRM) {
         let rm32 = self.get_rm32(&modrm);
-        let imm8 = self.get_code8(0) as u32;
-        self.eip += 1;
+        let imm8 = self.get_code8(OPCODE_LENGTH + modrm.length) as u32;
         self.set_rm32(&modrm, (Wrapping(rm32) - Wrapping(imm8)).0);
+        self.eip += OPCODE_LENGTH + modrm.length + IMM8_LENGTH;
     }
 
     /// 83 /6 ib sz : xor r/m32 imm8
     fn xor_rm32_imm8(&mut self, modrm: &modrm::ModRM) {
         let rm32 = self.get_rm32(&modrm);
-        let imm8 = self.get_code8(0) as u32;
-        self.eip += 1;
+        let imm8 = self.get_code8(OPCODE_LENGTH + modrm.length) as u32;
         self.set_rm32(&modrm, rm32 ^ imm8);
+        self.eip += OPCODE_LENGTH + modrm.length + IMM8_LENGTH;
     }
 
     /// 89 /r sz : mov r/m32 r32
     fn mov_rm32_r32(&mut self) {
-        self.eip += 1;
         let modrm = modrm::ModRM::parse(self);
         let r32 = self.get_r32(&modrm);
         self.set_rm32(&modrm, r32);
+        self.eip += OPCODE_LENGTH + modrm.length;
     }
 
     /// 8B /r sz : mov r32 r/m32
     fn mov_r32_rm32(&mut self) {
-        self.eip += 1;
         let modrm = modrm::ModRM::parse(self);
         let rm32 = self.get_rm32(&modrm);
         self.set_r32(&modrm, rm32);
+        self.eip += OPCODE_LENGTH + modrm.length;
     }
 
     /// B8 id sz : mov eax imm32
@@ -387,38 +382,37 @@ impl Emulator {
     /// BF id sz : mov edi imm32
     fn mov_r32_imm32(&mut self) {
         let index = self.get_code8(0) - 0xB8;
-        let value = self.get_code32(1);
-        self.set_register32(index, value);
-        self.eip += 5;
+        let imm32 = self.get_code32(OPCODE_LENGTH);
+        self.set_register32(index, imm32);
+        self.eip += OPCODE_LENGTH + IMM32_LENGTH;
     }
 
     /// C7 /0 id sz : mov r/m32 imm32
     fn mov_rm32_imm32(&mut self) {
-        self.eip += 1;
         let modrm = modrm::ModRM::parse(self);
-        let value = self.get_code32(0);
-        self.eip += 4;
-        self.set_rm32(&modrm, value);
+        let imm32 = self.get_code32(OPCODE_LENGTH + modrm.length);
+        self.set_rm32(&modrm, imm32);
+        self.eip += OPCODE_LENGTH + modrm.length + IMM32_LENGTH;
     }
 
     /// E9 cd : jmp rel16
     /// E9 cd : jmp rel32
     fn near_jump(&mut self) {
-        let diff = self.get_code32(1) as i32;
-        self.eip = (Wrapping(self.eip) + Wrapping((diff + 5) as u32)).0;
+        let diff = self.get_code32(OPCODE_LENGTH) as u32;
+        self.eip = (Wrapping(self.eip) + Wrapping((diff + OPCODE_LENGTH + IMM32_LENGTH) as u32)).0;
     }
 
     /// EB cd : jmp rel8
     fn short_jump(&mut self) {
-        let diff = self.get_code8(1) as i8;
-        // Allow overflow
-        self.eip = (Wrapping(self.eip) + Wrapping((diff + 2) as u32)).0;
+        let diff = self.get_code8(OPCODE_LENGTH) as u32;
+        self.eip = (Wrapping(self.eip) + Wrapping((diff + OPCODE_LENGTH + IMM8_LENGTH) as u32)).0;
     }
 
     /// FF /0 sz : inc r/m32
     fn inc_rm32(&mut self, modrm: &modrm::ModRM) {
-        let value = self.get_rm32(&modrm);
-        self.set_rm32(&modrm, value + 1);
+        let rm32 = self.get_rm32(&modrm);
+        self.set_rm32(&modrm, rm32 + 1);
+        self.eip += OPCODE_LENGTH + modrm.length;
     }
 
     fn calc_memory_address(&self, modrm: &modrm::ModRM) -> u32 {

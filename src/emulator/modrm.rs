@@ -1,4 +1,4 @@
-use emulator::Emulator;
+use emulator;
 
 #[allow(dead_code)]
 #[derive(Default)]
@@ -9,29 +9,30 @@ pub struct ModRM {
     sib: u8,
     pub disp8: i8,
     pub disp32: u32,
+    pub length: u32,
 }
 
 impl ModRM {
-    pub fn parse(emu: &mut Emulator) -> ModRM {
-        let code = emu.get_code8(0);
+    pub fn parse(emu: &mut emulator::Emulator) -> ModRM {
+        let code = emu.get_code8(emulator::OPCODE_LENGTH);
 
         let mut modrm = ModRM::default();
         modrm.mod_ = (code & 0xC0) >> 6;
         modrm.reg = (code & 0x38) >> 3;
         modrm.rm = code & 0x07;
 
-        emu.eip += 1;
+        modrm.length += 1;
 
         if modrm.mod_ != 3 && modrm.rm == 4 {
-            modrm.sib = emu.get_code8(0);
-            emu.eip += 1;
+            modrm.sib = emu.get_code8(emulator::OPCODE_LENGTH + modrm.length);
+            modrm.length += 1;
         }
         if modrm.mod_ == 0 && modrm.rm == 5 || modrm.mod_ == 2 {
-            modrm.disp32 = emu.get_code32(0);
-            emu.eip += 4;
+            modrm.disp32 = emu.get_code32(emulator::OPCODE_LENGTH + modrm.length);
+            modrm.length += 4;
         } else if modrm.mod_ == 1 {
-            modrm.disp8 = emu.get_code8(0) as i8;
-            emu.eip += 1;
+            modrm.disp8 = emu.get_code8(emulator::OPCODE_LENGTH + modrm.length) as i8;
+            modrm.length += 1;
         }
         modrm
     }
