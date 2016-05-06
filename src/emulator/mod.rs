@@ -79,15 +79,44 @@ impl Emulator {
         match code {
             0x01 => self.add_rm32_r32(),
             0x03 => self.add_r32_rm32(),
-            0x81 => self.code_81(),
-            0x83 => self.code_83(),
+            0x81 => {
+                self.eip += 1;
+                let modrm = modrm::ModRM::parse(self);
+                match modrm.reg {
+                    0 => self.add_rm32_imm32(&modrm),
+                    1 => self.or_rm32_imm32(&modrm),
+                    4 => self.and_rm32_imm32(&modrm),
+                    5 => self.sub_rm32_imm32(&modrm),
+                    6 => self.xor_rm32_imm32(&modrm),
+                    _ => panic!(format!("not implemented: 81 /{}", modrm.reg)),
+                }
+            },
+            0x83 => {
+                self.eip += 1;
+                let modrm = modrm::ModRM::parse(self);
+                match modrm.reg {
+                    0 => self.add_rm32_imm8(&modrm),
+                    1 => self.or_rm32_imm8(&modrm),
+                    4 => self.and_rm32_imm8(&modrm),
+                    5 => self.sub_rm32_imm8(&modrm),
+                    6 => self.xor_rm32_imm8(&modrm),
+                    _ => panic!(format!("not implemented: 83 /{}", modrm.reg)),
+                }
+            },
             0x89 => self.mov_rm32_r32(),
             0x8B => self.mov_r32_rm32(),
             0xB8...0xBF => self.mov_r32_imm32(),
             0xC7 => self.mov_rm32_imm32(),
             0xE9 => self.near_jump(),
             0xEB => self.short_jump(),
-            0xFF => self.code_ff(),
+            0xFF => {
+                self.eip += 1;
+                let modrm = modrm::ModRM::parse(self);
+                match modrm.reg {
+                    0 => self.inc_rm32(&modrm),
+                    _ => panic!(format!("not implemented: FF /{}", modrm.reg)),
+                }
+            },
             _ => {
                 self.dump_registers();
                 panic!("not implemented");
@@ -103,60 +132,7 @@ impl Emulator {
         println!("EIP = 0x{:08X}", self.eip);
     }
 
-    /// Emulate mov instruction.
-    ///
-    /// ```
-    /// mov eax, 41
-    /// ```
-    fn mov_r32_imm32(&mut self) {
-        let index = self.get_code8(0) - 0xB8;
-        let value = self.get_code32(1);
-        self.set_register32(index, value);
-        self.eip += 5;
-    }
-
-    /// Emulate mov instruction.
-    ///
-    /// ```
-    /// mov dword [ebp+4], 5
-    /// ```
-    fn mov_rm32_imm32(&mut self) {
-        self.eip += 1;
-        let modrm = modrm::ModRM::parse(self);
-        let value = self.get_code32(0);
-        self.eip += 4;
-        self.set_rm32(&modrm, value);
-    }
-
-    /// Emulate mov instruction.
-    ///
-    /// ```
-    /// mov dword [ebp+4], eax
-    /// ```
-    fn mov_rm32_r32(&mut self) {
-        self.eip += 1;
-        let modrm = modrm::ModRM::parse(self);
-        let r32 = self.get_r32(&modrm);
-        self.set_rm32(&modrm, r32);
-    }
-
-    /// Emulate mov instruction.
-    ///
-    /// ```
-    /// mov esi, [ebp+4]
-    /// ```
-    fn mov_r32_rm32(&mut self) {
-        self.eip += 1;
-        let modrm = modrm::ModRM::parse(self);
-        let rm32 = self.get_rm32(&modrm);
-        self.set_r32(&modrm, rm32);
-    }
-
-    /// Emulate add instruction.
-    ///
-    /// ```
-    /// add dword [ebp+4], eax
-    /// ```
+    /// 01 /r sz : add r/m32 r32
     fn add_rm32_r32(&mut self) {
         self.eip += 1;
         let modrm = modrm::ModRM::parse(self);
@@ -165,11 +141,7 @@ impl Emulator {
         self.set_rm32(&modrm, r32 + rm32);
     }
 
-    /// Emulate add instruction.
-    ///
-    /// ```
-    /// add eax, dword [ebp+4]
-    /// ```
+    /// 03 /r sz : add r32 r/m32
     fn add_r32_rm32(&mut self) {
         self.eip += 1;
         let modrm = modrm::ModRM::parse(self);
@@ -178,24 +150,7 @@ impl Emulator {
         self.set_r32(&modrm, r32 + rm32);
     }
 
-    fn code_81(&mut self) {
-        self.eip += 1;
-        let modrm = modrm::ModRM::parse(self);
-        match modrm.reg {
-            0 => self.add_rm32_imm32(&modrm),
-            1 => self.or_rm32_imm32(&modrm),
-            4 => self.and_rm32_imm32(&modrm),
-            5 => self.sub_rm32_imm32(&modrm),
-            6 => self.xor_rm32_imm32(&modrm),
-            _ => panic!(format!("not implemented: 81 /{}", modrm.reg)),
-        }
-    }
-
-    /// Emulate add instruction.
-    ///
-    /// ```
-    /// add esp, 16
-    /// ```
+    /// 81 /0 id sz : add r/m32 imm32
     fn add_rm32_imm32(&mut self, modrm: &modrm::ModRM) {
         let rm32 = self.get_rm32(&modrm);
         let imm32 = self.get_code32(0);
@@ -203,11 +158,7 @@ impl Emulator {
         self.set_rm32(&modrm, (Wrapping(rm32) + Wrapping(imm32)).0);
     }
 
-    /// Emulate or instruction.
-    ///
-    /// ```
-    /// or esp, 16
-    /// ```
+    /// 81 /1 id sz : or r/m32 imm32
     fn or_rm32_imm32(&mut self, modrm: &modrm::ModRM) {
         let rm32 = self.get_rm32(&modrm);
         let imm32 = self.get_code32(0);
@@ -215,11 +166,7 @@ impl Emulator {
         self.set_rm32(&modrm, rm32 | imm32);
     }
 
-    /// Emulate and instruction.
-    ///
-    /// ```
-    /// and esp, 16
-    /// ```
+    /// 81 /4 id sz : and r/m32 imm32
     fn and_rm32_imm32(&mut self, modrm: &modrm::ModRM) {
         let rm32 = self.get_rm32(&modrm);
         let imm32 = self.get_code32(0);
@@ -227,11 +174,7 @@ impl Emulator {
         self.set_rm32(&modrm, rm32 & imm32);
     }
 
-    /// Emulate sub instruction.
-    ///
-    /// ```
-    /// sub esp, 16
-    /// ```
+    /// 81 /5 id sz : sub r/m32 imm32
     fn sub_rm32_imm32(&mut self, modrm: &modrm::ModRM) {
         let rm32 = self.get_rm32(&modrm);
         let imm32 = self.get_code32(0);
@@ -239,11 +182,7 @@ impl Emulator {
         self.set_rm32(&modrm, (Wrapping(rm32) - Wrapping(imm32)).0);
     }
 
-    /// Emulate xor instruction.
-    ///
-    /// ```
-    /// xor esp, 16
-    /// ```
+    /// 81 /6 id sz : xor r/m32 imm32
     fn xor_rm32_imm32(&mut self, modrm: &modrm::ModRM) {
         let rm32 = self.get_rm32(&modrm);
         let imm32 = self.get_code32(0);
@@ -251,24 +190,7 @@ impl Emulator {
         self.set_rm32(&modrm, rm32 ^ imm32);
     }
 
-    fn code_83(&mut self) {
-        self.eip += 1;
-        let modrm = modrm::ModRM::parse(self);
-        match modrm.reg {
-            0 => self.add_rm32_imm8(&modrm),
-            1 => self.or_rm32_imm8(&modrm),
-            4 => self.and_rm32_imm8(&modrm),
-            5 => self.sub_rm32_imm8(&modrm),
-            6 => self.xor_rm32_imm8(&modrm),
-            _ => panic!(format!("not implemented: 83 /{}", modrm.reg)),
-        }
-    }
-
-    /// Emulate add instruction.
-    ///
-    /// ```
-    /// add esp, 16
-    /// ```
+    /// 83 /0 ib sz : add r/m32 imm8
     fn add_rm32_imm8(&mut self, modrm: &modrm::ModRM) {
         let rm32 = self.get_rm32(&modrm);
         let imm8 = self.get_code8(0) as u32;
@@ -276,11 +198,7 @@ impl Emulator {
         self.set_rm32(&modrm, (Wrapping(rm32) + Wrapping(imm8)).0);
     }
 
-    /// Emulate or instruction.
-    ///
-    /// ```
-    /// or esp, 16
-    /// ```
+    /// 83 /1 ib sz : or r/m32 imm8
     fn or_rm32_imm8(&mut self, modrm: &modrm::ModRM) {
         let rm32 = self.get_rm32(&modrm);
         let imm8 = self.get_code8(0) as u32;
@@ -288,11 +206,7 @@ impl Emulator {
         self.set_rm32(&modrm, rm32 | imm8);
     }
 
-    /// Emulate and instruction.
-    ///
-    /// ```
-    /// and esp, 16
-    /// ```
+    /// 83 /4 ib sz : and r/m32 imm8
     fn and_rm32_imm8(&mut self, modrm: &modrm::ModRM) {
         let rm32 = self.get_rm32(&modrm);
         let imm8 = self.get_code8(0) as u32;
@@ -300,11 +214,7 @@ impl Emulator {
         self.set_rm32(&modrm, rm32 & imm8);
     }
 
-    /// Emulate sub instruction.
-    ///
-    /// ```
-    /// sub esp, 16
-    /// ```
+    /// 83 /5 ib sz : sub r/m32 imm8
     fn sub_rm32_imm8(&mut self, modrm: &modrm::ModRM) {
         let rm32 = self.get_rm32(&modrm);
         let imm8 = self.get_code8(0) as u32;
@@ -312,11 +222,7 @@ impl Emulator {
         self.set_rm32(&modrm, (Wrapping(rm32) - Wrapping(imm8)).0);
     }
 
-    /// Emulate xor instruction.
-    ///
-    /// ```
-    /// xor esp, 16
-    /// ```
+    /// 83 /6 ib sz : xor r/m32 imm8
     fn xor_rm32_imm8(&mut self, modrm: &modrm::ModRM) {
         let rm32 = self.get_rm32(&modrm);
         let imm8 = self.get_code8(0) as u32;
@@ -324,45 +230,64 @@ impl Emulator {
         self.set_rm32(&modrm, rm32 ^ imm8);
     }
 
-    fn code_ff(&mut self) {
+    /// 89 /r sz : mov r/m32 r32
+    fn mov_rm32_r32(&mut self) {
         self.eip += 1;
         let modrm = modrm::ModRM::parse(self);
-        if modrm.reg == 0 {
-            self.inc_rm32(&modrm);
-        } else {
-            panic!(format!("not implemented: FF /{}", modrm.reg));
-        }
+        let r32 = self.get_r32(&modrm);
+        self.set_rm32(&modrm, r32);
     }
 
-    /// Emulate inc instruction.
-    ///
-    /// ```
-    /// inc dword [ebp+4]
-    /// ```
-    fn inc_rm32(&mut self, modrm: &modrm::ModRM) {
-        let value = self.get_rm32(&modrm);
-        self.set_rm32(&modrm, value + 1);
+    /// 8B /r sz : mov r32 r/m32
+    fn mov_r32_rm32(&mut self) {
+        self.eip += 1;
+        let modrm = modrm::ModRM::parse(self);
+        let rm32 = self.get_rm32(&modrm);
+        self.set_r32(&modrm, rm32);
     }
 
-    /// Emulate short jump instruction.
-    ///
-    /// ```
-    /// jmp short start
-    /// ```
+    /// B8 id sz : mov eax imm32
+    /// B9 id sz : mov ecx imm32
+    /// BA id sz : mov edx imm32
+    /// BB id sz : mov ebx imm32
+    /// BC id sz : mov esp imm32
+    /// BD id sz : mov ebp imm32
+    /// BE id sz : mov esi imm32
+    /// BF id sz : mov edi imm32
+    fn mov_r32_imm32(&mut self) {
+        let index = self.get_code8(0) - 0xB8;
+        let value = self.get_code32(1);
+        self.set_register32(index, value);
+        self.eip += 5;
+    }
+
+    /// C7 /0 id sz : mov r/m32 imm32
+    fn mov_rm32_imm32(&mut self) {
+        self.eip += 1;
+        let modrm = modrm::ModRM::parse(self);
+        let value = self.get_code32(0);
+        self.eip += 4;
+        self.set_rm32(&modrm, value);
+    }
+
+    /// E9 cd : jmp rel16
+    /// E9 cd : jmp rel32
+    fn near_jump(&mut self) {
+        let diff = self.get_code32(1) as i32;
+        self.eip = (Wrapping(self.eip) + Wrapping((diff + 5) as u32)).0;
+    }
+
+    /// EB cd : jmp rel8
     fn short_jump(&mut self) {
         let diff = self.get_code8(1) as i8;
         // Allow overflow
         self.eip = (Wrapping(self.eip) + Wrapping((diff + 2) as u32)).0;
     }
 
-    /// Emulate near jump instruction.
-    ///
-    /// ```
-    /// jmp 0
-    /// ```
-    fn near_jump(&mut self) {
-        let diff = self.get_code32(1) as i32;
-        self.eip = (Wrapping(self.eip) + Wrapping((diff + 5) as u32)).0;
+    /// FF /0 sz : inc r/m32
+    fn inc_rm32(&mut self, modrm: &modrm::ModRM) {
+        let value = self.get_rm32(&modrm);
+        self.set_rm32(&modrm, value + 1);
     }
 
     fn calc_memory_address(&self, modrm: &modrm::ModRM) -> u32 {
