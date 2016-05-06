@@ -170,6 +170,7 @@ impl Emulator {
         match modrm.reg {
             0 => self.add_rm32_imm32(&modrm),
             1 => self.or_rm32_imm32(&modrm),
+            4 => self.and_rm32_imm32(&modrm),
             5 => self.sub_rm32_imm32(&modrm),
             _ => panic!(format!("not implemented: 81 /{}", modrm.reg)),
         }
@@ -197,6 +198,18 @@ impl Emulator {
         let imm32 = self.get_code32(0);
         self.eip += 4;
         self.set_rm32(&modrm, rm32 | imm32);
+    }
+
+    /// Emulate and instruction.
+    ///
+    /// ```
+    /// and esp, 16
+    /// ```
+    fn and_rm32_imm32(&mut self, modrm: &modrm::ModRM) {
+        let rm32 = self.get_rm32(&modrm);
+        let imm32 = self.get_code32(0);
+        self.eip += 4;
+        self.set_rm32(&modrm, rm32 & imm32);
     }
 
     /// Emulate sub instruction.
