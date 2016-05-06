@@ -124,6 +124,13 @@ impl Emulator {
             0xC7 => self.mov_rm32_imm32(),
             0xE9 => self.near_jump(),
             0xEB => self.short_jump(),
+            0xF7 => {
+                let modrm = modrm::ModRM::parse(self);
+                match modrm.reg {
+                    3 => self.neg_rm32(&modrm),
+                    _ => panic!(format!("not implemented: F7 /{}", modrm.reg)),
+                }
+            },
             0xFF => {
                 let modrm = modrm::ModRM::parse(self);
                 match modrm.reg {
@@ -406,6 +413,13 @@ impl Emulator {
     fn short_jump(&mut self) {
         let diff = self.get_code8(OPCODE_LENGTH) as u32;
         self.eip = (Wrapping(self.eip) + Wrapping((diff + OPCODE_LENGTH + IMM8_LENGTH) as u32)).0;
+    }
+
+    /// F7 /3 sz : neg r/m32
+    fn neg_rm32(&mut self, modrm: &modrm::ModRM) {
+        let rm32 = self.get_rm32(&modrm) as i32;
+        self.set_rm32(&modrm, -rm32 as u32);
+        self.eip += OPCODE_LENGTH + modrm.length;
     }
 
     /// FF /0 sz : inc r/m32
