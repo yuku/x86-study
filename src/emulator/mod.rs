@@ -74,7 +74,7 @@ impl Emulator {
     fn execute(&mut self) {
         let code = self.get_code8(0);
 
-        println!("EIP = 0x{eip:08X}, Code = 0x{code:08X}", eip = self.eip, code = code);
+        println!("EIP = 0x{:08X}, Code = 0x{:02X}", self.eip, code);
 
         match code {
             0x01 => self.add_rm32_r32(),
