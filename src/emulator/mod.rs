@@ -10,6 +10,7 @@ const REGISTER_NAMES: [&'static str; REGISTERS_COUNT] = [
 ];
 const EAX: usize = 0;
 const ESP: usize = 4;
+const EBP: usize = 5;
 pub const OPCODE_LENGTH: u32 = 1;
 const IMM32_LENGTH: u32 = 4;
 const IMM8_LENGTH: u32 = 1;
@@ -125,6 +126,7 @@ impl Emulator {
             0xB8...0xBF => self.mov_r32_imm32(),
             0xC3 => self.ret(),
             0xC7 => self.mov_rm32_imm32(),
+            0xC9 => self.leave(),
             0xE8 => self.call_rel32(),
             0xE9 => self.near_jump(),
             0xEB => self.short_jump(),
@@ -439,6 +441,15 @@ impl Emulator {
         let imm32 = self.get_code32(OPCODE_LENGTH + modrm.length);
         self.set_rm32(&modrm, imm32);
         self.eip += OPCODE_LENGTH + modrm.length + IMM32_LENGTH;
+    }
+
+    /// C9 : leave
+    fn leave(&mut self) {
+        let ebp = self.get_register32(EBP as u8);
+        self.set_register32(ESP as u8, ebp);
+        let value = self.pop32();
+        self.set_register32(EBP as u8, value);
+        self.eip += OPCODE_LENGTH;
     }
 
     /// E8 cd : call rel32
