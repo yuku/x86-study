@@ -240,11 +240,50 @@ impl Emulator {
     fn code_83(&mut self) {
         self.eip += 1;
         let modrm = modrm::ModRM::parse(self);
-        if modrm.reg == 5 {
-            self.sub_rm32_imm8(&modrm);
-        } else {
-            panic!(format!("not implemented: 83 /{}", modrm.reg));
+        match modrm.reg {
+            0 => self.add_rm32_imm8(&modrm),
+            1 => self.or_rm32_imm8(&modrm),
+            4 => self.and_rm32_imm8(&modrm),
+            5 => self.sub_rm32_imm8(&modrm),
+            6 => self.xor_rm32_imm8(&modrm),
+            _ => panic!(format!("not implemented: 83 /{}", modrm.reg)),
         }
+    }
+
+    /// Emulate add instruction.
+    ///
+    /// ```
+    /// add esp, 16
+    /// ```
+    fn add_rm32_imm8(&mut self, modrm: &modrm::ModRM) {
+        let rm32 = self.get_rm32(&modrm);
+        let imm8 = self.get_code8(0) as u32;
+        self.eip += 1;
+        self.set_rm32(&modrm, (Wrapping(rm32) + Wrapping(imm8)).0);
+    }
+
+    /// Emulate or instruction.
+    ///
+    /// ```
+    /// or esp, 16
+    /// ```
+    fn or_rm32_imm8(&mut self, modrm: &modrm::ModRM) {
+        let rm32 = self.get_rm32(&modrm);
+        let imm8 = self.get_code8(0) as u32;
+        self.eip += 1;
+        self.set_rm32(&modrm, rm32 | imm8);
+    }
+
+    /// Emulate and instruction.
+    ///
+    /// ```
+    /// and esp, 16
+    /// ```
+    fn and_rm32_imm8(&mut self, modrm: &modrm::ModRM) {
+        let rm32 = self.get_rm32(&modrm);
+        let imm8 = self.get_code8(0) as u32;
+        self.eip += 1;
+        self.set_rm32(&modrm, rm32 & imm8);
     }
 
     /// Emulate sub instruction.
@@ -256,7 +295,19 @@ impl Emulator {
         let rm32 = self.get_rm32(&modrm);
         let imm8 = self.get_code8(0) as u32;
         self.eip += 1;
-        self.set_rm32(&modrm, rm32 - imm8);
+        self.set_rm32(&modrm, (Wrapping(rm32) - Wrapping(imm8)).0);
+    }
+
+    /// Emulate xor instruction.
+    ///
+    /// ```
+    /// xor esp, 16
+    /// ```
+    fn xor_rm32_imm8(&mut self, modrm: &modrm::ModRM) {
+        let rm32 = self.get_rm32(&modrm);
+        let imm8 = self.get_code8(0) as u32;
+        self.eip += 1;
+        self.set_rm32(&modrm, rm32 ^ imm8);
     }
 
     fn code_ff(&mut self) {
