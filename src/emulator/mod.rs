@@ -96,6 +96,8 @@ impl Emulator {
             0x31 => self.xor_rm32_r32(),
             0x33 => self.xor_r32_rm32(),
             0x35 => self.xor_eax_imm32(),
+            0x50...0x57 => self.push_r32(),
+            0x58...0x5F => self.pop_r32(),
             0x81 => {
                 let modrm = modrm::ModRM::parse(self);
                 match modrm.reg {
@@ -281,6 +283,36 @@ impl Emulator {
         let imm32 = self.get_code32(OPCODE_LENGTH);
         self.set_register32(EAX as u8, eax ^ imm32);
         self.eip += OPCODE_LENGTH + IMM32_LENGTH;
+    }
+
+    /// 50 sz : push eax
+    /// 51 sz : push ecx
+    /// 52 sz : push edx
+    /// 53 sz : push ebx
+    /// 54 sz : push esp
+    /// 55 sz : push ebp
+    /// 56 sz : push esi
+    /// 57 sz : push edi
+    fn push_r32(&mut self) {
+        let index = self.get_code8(0) - 0x50;
+        let value = self.get_register32(index);
+        self.push32(value);
+        self.eip += OPCODE_LENGTH;
+    }
+
+    /// 58 sz : pop eax
+    /// 59 sz : pop ecx
+    /// 5A sz : pop edx
+    /// 5B sz : pop ebx
+    /// 5C sz : pop esp
+    /// 5D sz : pop ebp
+    /// 5E sz : pop esi
+    /// 5F sz : pop edi
+    fn pop_r32(&mut self) {
+        let index = self.get_code8(0) - 0x58;
+        let value = self.pop32();
+        self.set_register32(index, value);
+        self.eip += OPCODE_LENGTH;
     }
 
     /// 81 /0 id sz : add r/m32 imm32
@@ -506,5 +538,18 @@ impl Emulator {
 
     fn set_r32(&mut self, modrm: &modrm::ModRM, value: u32) {
         self.set_register32(modrm.reg, value);
+    }
+
+    fn push32(&mut self, value: u32) {
+        let address = self.get_register32(ESP as u8) - 4;
+        self.set_register32(ESP as u8, address);
+        self.set_memory32(address, value);
+    }
+
+    fn pop32(&mut self) -> u32 {
+        let address = self.get_register32(ESP as u8);
+        let ret = self.get_memory32(address);
+        self.set_register32(ESP as u8, address + 4);
+        ret
     }
 }
