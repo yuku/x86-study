@@ -8,6 +8,7 @@ const REGISTERS_COUNT: usize = 8;
 const REGISTER_NAMES: [&'static str; REGISTERS_COUNT] = [
     "EAX", "ECX", "EDX", "EBX", "ESP", "EBP", "ESI", "EDI"
 ];
+const EAX: usize = 0;
 const ESP: usize = 4;
 const MEMORY_SIZE: usize = 1024 * 1024;
 
@@ -79,6 +80,10 @@ impl Emulator {
         match code {
             0x01 => self.add_rm32_r32(),
             0x03 => self.add_r32_rm32(),
+            0x05 => self.add_eax_imm32(),
+            0x09 => self.or_rm32_r32(),
+            0x0B => self.or_r32_rm32(),
+            0x0D => self.or_eax_imm32(),
             0x81 => {
                 self.eip += 1;
                 let modrm = modrm::ModRM::parse(self);
@@ -148,6 +153,42 @@ impl Emulator {
         let r32 = self.get_r32(&modrm);
         let rm32 = self.get_rm32(&modrm);
         self.set_r32(&modrm, r32 + rm32);
+    }
+
+    /// 05 id sz : add eax imm32
+    fn add_eax_imm32(&mut self) {
+        self.eip += 1;
+        let eax = self.get_register32(EAX as u8);
+        let imm32 = self.get_code32(0);
+        self.eip += 4;
+        self.set_register32(EAX as u8, eax + imm32);
+    }
+
+    /// 09 /r rz : or r/m32 r32
+    fn or_rm32_r32(&mut self) {
+        self.eip += 1;
+        let modrm = modrm::ModRM::parse(self);
+        let rm32 = self.get_rm32(&modrm);
+        let r32 = self.get_r32(&modrm);
+        self.set_rm32(&modrm, rm32 | r32);
+    }
+
+    /// 0B /r sz : or r32 r/m32
+    fn or_r32_rm32(&mut self) {
+        self.eip += 1;
+        let modrm = modrm::ModRM::parse(self);
+        let r32 = self.get_r32(&modrm);
+        let rm32 = self.get_rm32(&modrm);
+        self.set_r32(&modrm, r32 | rm32);
+    }
+
+    /// 0D id sz : or eax imm32
+    fn or_eax_imm32(&mut self) {
+        self.eip += 1;
+        let eax = self.get_register32(EAX as u8);
+        let imm32 = self.get_code32(0);
+        self.eip += 4;
+        self.set_register32(EAX as u8, eax | imm32);
     }
 
     /// 81 /0 id sz : add r/m32 imm32
