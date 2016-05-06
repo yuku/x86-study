@@ -90,6 +90,9 @@ impl Emulator {
             0x29 => self.sub_rm32_r32(),
             0x2B => self.sub_r32_rm32(),
             0x2D => self.sub_eax_imm32(),
+            0x31 => self.xor_rm32_r32(),
+            0x33 => self.xor_r32_rm32(),
+            0x35 => self.xor_eax_imm32(),
             0x81 => {
                 self.eip += 1;
                 let modrm = modrm::ModRM::parse(self);
@@ -249,6 +252,33 @@ impl Emulator {
         let imm32 = self.get_code32(0);
         self.eip += 4;
         self.set_register32(EAX as u8, (Wrapping(eax) - Wrapping(imm32)).0);
+    }
+
+    /// 31 /r sz : xor r/m32 r32
+    fn xor_rm32_r32(&mut self) {
+        self.eip += 1;
+        let modrm = modrm::ModRM::parse(self);
+        let rm32 = self.get_rm32(&modrm);
+        let r32 = self.get_r32(&modrm);
+        self.set_rm32(&modrm, rm32 ^ r32);
+    }
+
+    /// 33 /r sz : xor r32 r/m32
+    fn xor_r32_rm32(&mut self) {
+        self.eip += 1;
+        let modrm = modrm::ModRM::parse(self);
+        let r32 = self.get_r32(&modrm);
+        let rm32 = self.get_rm32(&modrm);
+        self.set_rm32(&modrm, r32 ^ rm32);
+    }
+
+    /// 35 /r sz : xor eax imm32
+    fn xor_eax_imm32(&mut self) {
+        self.eip += 1;
+        let eax = self.get_register32(EAX as u8);
+        let imm32 = self.get_code32(0);
+        self.eip += 4;
+        self.set_register32(EAX as u8, eax ^ imm32);
     }
 
     /// 81 /0 id sz : add r/m32 imm32
