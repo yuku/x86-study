@@ -84,6 +84,12 @@ impl Emulator {
             0x09 => self.or_rm32_r32(),
             0x0B => self.or_r32_rm32(),
             0x0D => self.or_eax_imm32(),
+            0x21 => self.and_rm32_r32(),
+            0x23 => self.and_r32_rm32(),
+            0x25 => self.and_eax_imm32(),
+            0x29 => self.sub_rm32_r32(),
+            0x2B => self.sub_r32_rm32(),
+            0x2D => self.sub_eax_imm32(),
             0x81 => {
                 self.eip += 1;
                 let modrm = modrm::ModRM::parse(self);
@@ -189,6 +195,60 @@ impl Emulator {
         let imm32 = self.get_code32(0);
         self.eip += 4;
         self.set_register32(EAX as u8, eax | imm32);
+    }
+
+    /// 21 /r sz : and r/m32 r32
+    fn and_rm32_r32(&mut self) {
+        self.eip += 1;
+        let modrm = modrm::ModRM::parse(self);
+        let rm32 = self.get_rm32(&modrm);
+        let r32 = self.get_r32(&modrm);
+        self.set_rm32(&modrm, rm32 & r32);
+    }
+
+    /// 23 /r sz : and r32 r/m32
+    fn and_r32_rm32(&mut self) {
+        self.eip += 1;
+        let modrm = modrm::ModRM::parse(self);
+        let r32 = self.get_r32(&modrm);
+        let rm32 = self.get_rm32(&modrm);
+        self.set_r32(&modrm, r32 & rm32);
+    }
+
+    /// 25 id sz : and eax imm32
+    fn and_eax_imm32(&mut self) {
+        self.eip += 1;
+        let eax = self.get_register32(EAX as u8);
+        let imm32 = self.get_code32(0);
+        self.eip += 4;
+        self.set_register32(EAX as u8, eax & imm32);
+    }
+
+    /// 29 /r sz : sub r/m32 r32
+    fn sub_rm32_r32(&mut self) {
+        self.eip += 1;
+        let modrm = modrm::ModRM::parse(self);
+        let rm32 = self.get_rm32(&modrm);
+        let r32 = self.get_r32(&modrm);
+        self.set_rm32(&modrm, (Wrapping(rm32) - Wrapping(r32)).0);
+    }
+
+    /// 2B /r sz : sub r32 r/m32
+    fn sub_r32_rm32(&mut self) {
+        self.eip += 1;
+        let modrm = modrm::ModRM::parse(self);
+        let r32 = self.get_r32(&modrm);
+        let rm32 = self.get_rm32(&modrm);
+        self.set_r32(&modrm, (Wrapping(r32) - Wrapping(rm32)).0);
+    }
+
+    /// 2D id sz : sub eax imm32
+    fn sub_eax_imm32(&mut self) {
+        self.eip += 1;
+        let eax = self.get_register32(EAX as u8);
+        let imm32 = self.get_code32(0);
+        self.eip += 4;
+        self.set_register32(EAX as u8, (Wrapping(eax) - Wrapping(imm32)).0);
     }
 
     /// 81 /0 id sz : add r/m32 imm32
