@@ -78,6 +78,7 @@ impl Emulator {
 
         match code {
             0x01 => self.add_rm32_r32(),
+            0x03 => self.add_r32_rm32(),
             0x81 => self.code_81(),
             0x83 => self.code_83(),
             0x89 => self.mov_rm32_r32(),
@@ -162,6 +163,19 @@ impl Emulator {
         let r32 = self.get_r32(&modrm);
         let rm32 = self.get_rm32(&modrm);
         self.set_rm32(&modrm, r32 + rm32);
+    }
+
+    /// Emulate add instruction.
+    ///
+    /// ```
+    /// add eax, dword [ebp+4]
+    /// ```
+    fn add_r32_rm32(&mut self) {
+        self.eip += 1;
+        let modrm = modrm::ModRM::parse(self);
+        let r32 = self.get_r32(&modrm);
+        let rm32 = self.get_rm32(&modrm);
+        self.set_r32(&modrm, r32 + rm32);
     }
 
     fn code_81(&mut self) {
