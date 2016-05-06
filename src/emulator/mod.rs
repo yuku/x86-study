@@ -123,7 +123,9 @@ impl Emulator {
             0x89 => self.mov_rm32_r32(),
             0x8B => self.mov_r32_rm32(),
             0xB8...0xBF => self.mov_r32_imm32(),
+            0xC3 => self.ret(),
             0xC7 => self.mov_rm32_imm32(),
+            0xE8 => self.call_rel32(),
             0xE9 => self.near_jump(),
             0xEB => self.short_jump(),
             0xF7 => {
@@ -426,12 +428,25 @@ impl Emulator {
         self.eip += OPCODE_LENGTH + IMM32_LENGTH;
     }
 
+    /// C3 : ret
+    fn ret(&mut self) {
+        self.eip = self.pop32();
+    }
+
     /// C7 /0 id sz : mov r/m32 imm32
     fn mov_rm32_imm32(&mut self) {
         let modrm = modrm::ModRM::parse(self);
         let imm32 = self.get_code32(OPCODE_LENGTH + modrm.length);
         self.set_rm32(&modrm, imm32);
         self.eip += OPCODE_LENGTH + modrm.length + IMM32_LENGTH;
+    }
+
+    /// E8 cd : call rel32
+    fn call_rel32(&mut self) {
+        let diff = self.get_code32(OPCODE_LENGTH) as u32;
+        let value = self.eip + OPCODE_LENGTH + IMM32_LENGTH;
+        self.push32(value);
+        self.eip = (Wrapping(value) + Wrapping(diff)).0;
     }
 
     /// E9 cd : jmp rel16
