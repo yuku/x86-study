@@ -125,6 +125,7 @@ impl Emulator {
             },
             0x89 => self.mov_rm32_r32(),
             0x8B => self.mov_r32_rm32(),
+            0x8D => self.lea_r32_m(),
             0xB8...0xBF => self.mov_r32_imm32(),
             0xC3 => self.ret(),
             0xC7 => self.mov_rm32_imm32(),
@@ -428,6 +429,14 @@ impl Emulator {
         let modrm = modrm::ModRM::parse(self);
         let rm32 = self.get_rm32(&modrm);
         self.set_r32(&modrm, rm32);
+        self.eip += OPCODE_LENGTH + modrm.length;
+    }
+
+    /// 8D /r sz : lea r32 m
+    fn lea_r32_m(&mut self) {
+        let modrm = modrm::ModRM::parse(self);
+        let address = self.calc_memory_address(&modrm);
+        self.set_r32(&modrm, address);
         self.eip += OPCODE_LENGTH + modrm.length;
     }
 
