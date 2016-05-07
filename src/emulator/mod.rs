@@ -15,6 +15,10 @@ pub const OPCODE_LENGTH: u32 = 1;
 const IMM32_LENGTH: u32 = 4;
 const IMM8_LENGTH: u32 = 1;
 const MEMORY_SIZE: usize = 1024 * 1024;
+const CARRY_FLAG: u32 = 1 << 0;
+const ZERO_FLAG: u32 = 1 << 6;
+const SIGN_FLAG: u32 = 1 << 7;
+const OVERFLOW_FLAG: u32 = 1 << 11;
 
 #[allow(dead_code)]
 pub struct Emulator {
@@ -245,7 +249,9 @@ impl Emulator {
         let modrm = modrm::ModRM::parse(self);
         let rm32 = self.get_rm32(&modrm);
         let r32 = self.get_r32(&modrm);
-        self.set_rm32(&modrm, (Wrapping(rm32) - Wrapping(r32)).0);
+        let result = (Wrapping(rm32 as u64) - Wrapping(r32 as u64)).0;
+        self.set_rm32(&modrm, result as u32);
+        self.update_eflags(rm32, r32, result);
         self.eip += OPCODE_LENGTH + modrm.length;
     }
 
@@ -254,7 +260,9 @@ impl Emulator {
         let modrm = modrm::ModRM::parse(self);
         let r32 = self.get_r32(&modrm);
         let rm32 = self.get_rm32(&modrm);
-        self.set_r32(&modrm, (Wrapping(r32) - Wrapping(rm32)).0);
+        let result = (Wrapping(r32 as u64) - Wrapping(rm32 as u64)).0;
+        self.set_r32(&modrm, result as u32);
+        self.update_eflags(r32, rm32, result);
         self.eip += OPCODE_LENGTH + modrm.length;
     }
 
@@ -262,7 +270,9 @@ impl Emulator {
     fn sub_eax_imm32(&mut self) {
         let eax = self.get_register32(EAX as u8);
         let imm32 = self.get_code32(OPCODE_LENGTH);
-        self.set_register32(EAX as u8, (Wrapping(eax) - Wrapping(imm32)).0);
+        let result = (Wrapping(eax as u64) - Wrapping(imm32 as u64)).0;
+        self.set_register32(EAX as u8, result as u32);
+        self.update_eflags(eax, imm32, result);
         self.eip += OPCODE_LENGTH + IMM32_LENGTH;
     }
 
@@ -364,7 +374,9 @@ impl Emulator {
     fn sub_rm32_imm32(&mut self, modrm: &modrm::ModRM) {
         let rm32 = self.get_rm32(&modrm);
         let imm32 = self.get_code32(OPCODE_LENGTH + modrm.length);
-        self.set_rm32(&modrm, (Wrapping(rm32) - Wrapping(imm32)).0);
+        let result = (Wrapping(rm32 as u64) - Wrapping(imm32 as u64)).0;
+        self.set_rm32(&modrm, result as u32);
+        self.update_eflags(rm32, imm32, result);
         self.eip += OPCODE_LENGTH + modrm.length + IMM32_LENGTH;
     }
 
@@ -404,7 +416,9 @@ impl Emulator {
     fn sub_rm32_imm8(&mut self, modrm: &modrm::ModRM) {
         let rm32 = self.get_rm32(&modrm);
         let imm8 = self.get_code8(OPCODE_LENGTH + modrm.length) as u32;
-        self.set_rm32(&modrm, (Wrapping(rm32) - Wrapping(imm8)).0);
+        let result = (Wrapping(rm32 as u64) - Wrapping(imm8 as u64)).0;
+        self.set_rm32(&modrm, result as u32);
+        self.update_eflags(rm32, imm8, result);
         self.eip += OPCODE_LENGTH + modrm.length + IMM8_LENGTH;
     }
 
@@ -615,6 +629,49 @@ impl Emulator {
             1 => r32b + r32i * 2,
             2 => r32b + r32i * 4,
             _ => r32b + r32i * 8,
+        }
+    }
+
+    fn update_eflags(&mut self, v1: u32, v2: u32, result: u64) {
+        let sign1 = v1 >> 31;
+        let sign2 = v2 >> 31;
+        let signr = ((result >> 31) & 1) as u32;
+
+        self.set_carry_flag((result >> 32) != 0);
+        self.set_zero_flag(result == 0);
+        self.set_sign_flag(signr != 0);
+        self.set_overflow_flag(sign1 != sign2 && sign1 != signr);
+    }
+
+    fn set_carry_flag(&mut self, is_carry: bool) {
+        if is_carry {
+            self.eflags |= CARRY_FLAG;
+        } else {
+            self.eflags &= !CARRY_FLAG;
+        }
+    }
+
+    fn set_zero_flag(&mut self, is_zero: bool) {
+        if is_zero {
+            self.eflags |= ZERO_FLAG;
+        } else {
+            self.eflags &= !ZERO_FLAG;
+        }
+    }
+
+    fn set_sign_flag(&mut self, is_sign: bool) {
+        if is_sign {
+            self.eflags |= SIGN_FLAG;
+        } else {
+            self.eflags &= !SIGN_FLAG;
+        }
+    }
+
+    fn set_overflow_flag(&mut self, is_overflow: bool) {
+        if is_overflow {
+            self.eflags |= OVERFLOW_FLAG;
+        } else {
+            self.eflags &= !OVERFLOW_FLAG;
         }
     }
 }
