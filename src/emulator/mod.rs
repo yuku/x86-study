@@ -448,11 +448,11 @@ impl Emulator {
     /// 7C cb : jl rel8
     fn jl_rel8(&mut self) {
         let diff = if self.is_sign() != self.is_overflow() {
-            self.get_code8(OPCODE_LENGTH)
+            self.get_code8(OPCODE_LENGTH) as i8
         } else {
             0
         } as u32;
-        self.eip += OPCODE_LENGTH + IMM8_LENGTH + diff;
+        self.eip = (Wrapping(self.eip + OPCODE_LENGTH + IMM8_LENGTH) + Wrapping(diff)).0;
     }
 
     /// 7D cb : jge rel8
@@ -460,19 +460,19 @@ impl Emulator {
         let diff = if self.is_sign() != self.is_overflow() {
             0
         } else {
-            self.get_code8(OPCODE_LENGTH)
+            self.get_code8(OPCODE_LENGTH) as i8
         } as u32;
-        self.eip += OPCODE_LENGTH + IMM8_LENGTH + diff;
+        self.eip = (Wrapping(self.eip + OPCODE_LENGTH + IMM8_LENGTH) + Wrapping(diff)).0;
     }
 
     /// 7E cb : jle rel8
     fn jle_rel8(&mut self) {
         let diff = if self.is_zero() || self.is_sign() != self.is_overflow() {
-            self.get_code8(OPCODE_LENGTH)
+            self.get_code8(OPCODE_LENGTH) as i8
         } else {
             0
         } as u32;
-        self.eip += OPCODE_LENGTH + IMM8_LENGTH + diff;
+        self.eip = (Wrapping(self.eip + OPCODE_LENGTH + IMM8_LENGTH) + Wrapping(diff)).0;
     }
 
     /// 7F cb : jg rel8
@@ -480,9 +480,9 @@ impl Emulator {
         let diff = if self.is_zero() || self.is_sign() != self.is_overflow() {
             0
         } else {
-            self.get_code8(OPCODE_LENGTH)
+            self.get_code8(OPCODE_LENGTH) as i8
         } as u32;
-        self.eip += OPCODE_LENGTH + IMM8_LENGTH + diff;
+        self.eip = (Wrapping(self.eip + OPCODE_LENGTH + IMM8_LENGTH) + Wrapping(diff)).0;
     }
 
     /// 81 /0 id sz : add r/m32 imm32
