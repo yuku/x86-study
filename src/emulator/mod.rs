@@ -117,9 +117,9 @@ impl Emulator {
             0x78 => self.js_rel8(),
             0x79 => self.jns_rel8(),
             0x7C => self.jl_rel8(),
-            //0x7D => self.jge_rel8(),
+            0x7D => self.jge_rel8(),
             0x7E => self.jle_rel8(),
-            //0x7F => self.jg_rel8(),
+            0x7F => self.jg_rel8(),
             0x81 => {
                 let modrm = modrm::ModRM::parse(self);
                 match modrm.reg {
@@ -457,6 +457,14 @@ impl Emulator {
     }
 
     /// 7D cb : jge rel8
+    fn jge_rel8(&mut self) {
+        let diff = if self.is_sign() != self.is_overflow() {
+            0
+        } else {
+            self.get_code8(OPCODE_LENGTH)
+        } as u32;
+        self.eip += OPCODE_LENGTH + IMM8_LENGTH + diff;
+    }
 
     /// 7E cb : jle rel8
     fn jle_rel8(&mut self) {
@@ -469,6 +477,14 @@ impl Emulator {
     }
 
     /// 7F cb : jg rel8
+    fn jg_rel8(&mut self) {
+        let diff = if self.is_zero() || self.is_sign() != self.is_overflow() {
+            0
+        } else {
+            self.get_code8(OPCODE_LENGTH)
+        } as u32;
+        self.eip += OPCODE_LENGTH + IMM8_LENGTH + diff;
+    }
 
     /// 81 /0 id sz : add r/m32 imm32
     fn add_rm32_imm32(&mut self, modrm: &modrm::ModRM) {
