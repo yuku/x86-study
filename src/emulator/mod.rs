@@ -62,7 +62,6 @@ impl Emulator {
 
             if self.eip == 0 {
                 println!("end of program.");
-                self.dump_registers();
                 break;
             }
         }
@@ -170,13 +169,12 @@ impl Emulator {
                 }
             },
             _ => {
-                self.dump_registers();
                 panic!("not implemented");
             },
         }
     }
 
-    fn dump_registers(&self) {
+    pub fn dump_registers(&self) {
         println!("\ndump registers");
         for i in 0..REGISTERS_COUNT {
             println!("{} = 0x{:08X}", REGISTER_NAMES[i], self.registers[i]);
