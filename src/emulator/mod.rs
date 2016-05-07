@@ -147,6 +147,7 @@ impl Emulator {
             0x89 => self.mov_rm32_r32(),
             0x8B => self.mov_r32_rm32(),
             0x8D => self.lea_r32_m(),
+            0x90 => self.nop(),
             0xB8...0xBF => self.mov_r32_imm32(),
             0xC3 => self.ret(),
             0xC7 => self.mov_rm32_imm32(),
@@ -614,6 +615,11 @@ impl Emulator {
         let address = self.calc_memory_address(&modrm);
         self.set_r32(&modrm, address);
         self.eip += OPCODE_LENGTH + modrm.length;
+    }
+
+    /// 90 : nop
+    fn nop(&mut self) {
+        self.eip += OPCODE_LENGTH;
     }
 
     /// B8 id sz : mov eax imm32
