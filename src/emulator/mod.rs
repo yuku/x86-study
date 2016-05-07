@@ -497,12 +497,12 @@ impl Emulator {
         } else if modrm.mod_ == 1 {
             match modrm.rm {
                 4 => panic!("not implemented ModRM mod = 1, rm = 4"),
-                _ => self.get_register32(modrm.rm) + modrm.disp8 as u32,
+                _ => (Wrapping(self.get_register32(modrm.rm)) + Wrapping(modrm.disp8 as u32)).0,
             }
         } else if modrm.mod_ == 2 {
             match modrm.rm {
                 4 => panic!("not implemented ModRM mod = 2, rm = 4"),
-                _ => self.get_register32(modrm.rm) + modrm.disp32,
+                _ => (Wrapping(self.get_register32(modrm.rm)) + Wrapping(modrm.disp32)).0,
             }
         } else {
             panic!("not implemented ModRM mod = 3");
