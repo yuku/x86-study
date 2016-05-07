@@ -506,18 +506,18 @@ impl Emulator {
     fn calc_memory_address(&self, modrm: &modrm::ModRM) -> u32 {
         if modrm.mod_ == 0 {
             match modrm.rm {
-                4 => panic!("not implemented ModRM mod = 0, rm = 4"),
+                4 => self.eval_sib(&modrm),
                 5 => modrm.disp32,
                 _ => self.get_register32(modrm.rm),
             }
         } else if modrm.mod_ == 1 {
             match modrm.rm {
-                4 => panic!("not implemented ModRM mod = 1, rm = 4"),
+                4 => (Wrapping(self.eval_sib(&modrm)) + Wrapping(modrm.disp8 as u32)).0,
                 _ => (Wrapping(self.get_register32(modrm.rm)) + Wrapping(modrm.disp8 as u32)).0,
             }
         } else if modrm.mod_ == 2 {
             match modrm.rm {
-                4 => panic!("not implemented ModRM mod = 2, rm = 4"),
+                4 => (Wrapping(self.eval_sib(&modrm)) + Wrapping(modrm.disp32)).0,
                 _ => (Wrapping(self.get_register32(modrm.rm)) + Wrapping(modrm.disp32)).0,
             }
         } else {
@@ -593,5 +593,19 @@ impl Emulator {
         let ret = self.get_memory32(address);
         self.set_register32(ESP as u8, address + 4);
         ret
+    }
+
+    fn eval_sib(&self, modrm: &modrm::ModRM) -> u32 {
+        let scale = (modrm.sib & 0xC0) >> 6;
+        let index = (modrm.sib & 0x38) >> 3;
+        let base = modrm.sib & 0x07;
+        let r32b = if base == 5 { 0 } else { self.get_register32(base) };
+        let r32i = if index == 4 { 0 } else { self.get_register32(index) };
+        match scale {
+            0 => r32b + r32i,
+            1 => r32b + r32i * 2,
+            2 => r32b + r32i * 4,
+            _ => r32b + r32i * 8,
+        }
     }
 }
