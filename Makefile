@@ -1,11 +1,8 @@
-BINS = files/helloworld.bin
+SUBDIRS = $(wildcard samples/*)
 
-.PHONY: all
+.PHONY: all $(SUBDIRS)
 
-all: $(BINS)
+all: $(SUBDIRS)
 
-%.o: %.c Makefile
-	$(CC) $(CFLAGS) -c $<
-
-%.bin: %.s Makefile
-	nasm -f bin -o $@ $<
+$(SUBDIRS):
+	$(MAKE) -C $@
