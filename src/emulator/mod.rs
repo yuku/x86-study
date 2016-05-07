@@ -108,6 +108,18 @@ impl Emulator {
             0x58...0x5F => self.pop_r32(),
             0x68 => self.push_imm32(),
             0x6A => self.push_imm8(),
+            0x70 => self.jo_rel8(),
+            0x71 => self.jno_rel8(),
+            0x72 => self.jc_rel8(),
+            0x73 => self.jnc_rel8(),
+            0x74 => self.jz_rel8(),
+            0x75 => self.jnz_rel8(),
+            0x78 => self.js_rel8(),
+            0x79 => self.jns_rel8(),
+            0x7C => self.jl_rel8(),
+            //0x7D => self.jge_rel8(),
+            0x7E => self.jle_rel8(),
+            //0x7F => self.jg_rel8(),
             0x81 => {
                 let modrm = modrm::ModRM::parse(self);
                 match modrm.reg {
@@ -385,6 +397,78 @@ impl Emulator {
         self.push32(imm8 as u32);
         self.eip += OPCODE_LENGTH + IMM8_LENGTH;
     }
+
+    /// 70 cb : jo rel8
+    fn jo_rel8(&mut self) {
+        let diff = if self.is_overflow() { self.get_code8(OPCODE_LENGTH) } else { 0 } as u32;
+        self.eip += OPCODE_LENGTH + IMM8_LENGTH + diff;
+    }
+
+    /// 71 cb : jno rel8
+    fn jno_rel8(&mut self) {
+        let diff = if self.is_overflow() { 0 } else { self.get_code8(OPCODE_LENGTH) } as u32;
+        self.eip += OPCODE_LENGTH + IMM8_LENGTH + diff;
+    }
+
+    /// 72 cb : jc rel8
+    fn jc_rel8(&mut self) {
+        let diff = if self.is_carry() { self.get_code8(OPCODE_LENGTH) } else { 0 } as u32;
+        self.eip += OPCODE_LENGTH + IMM8_LENGTH + diff;
+    }
+
+    /// 73 cb : jnc rel8
+    fn jnc_rel8(&mut self) {
+        let diff = if self.is_carry() { 0 } else { self.get_code8(OPCODE_LENGTH) } as u32;
+        self.eip += OPCODE_LENGTH + IMM8_LENGTH + diff;
+    }
+
+    /// 74 cb : jz rel8
+    fn jz_rel8(&mut self) {
+        let diff = if self.is_zero() { self.get_code8(OPCODE_LENGTH) } else { 0 } as u32;
+        self.eip += OPCODE_LENGTH + IMM8_LENGTH + diff;
+    }
+
+    /// 75 cb : jnz rel8
+    fn jnz_rel8(&mut self) {
+        let diff = if self.is_zero() { 0 } else { self.get_code8(OPCODE_LENGTH) } as u32;
+        self.eip += OPCODE_LENGTH + IMM8_LENGTH + diff;
+    }
+
+    /// 78 cb : js rel8
+    fn js_rel8(&mut self) {
+        let diff = if self.is_sign() { self.get_code8(OPCODE_LENGTH) } else { 0 } as u32;
+        self.eip += OPCODE_LENGTH + IMM8_LENGTH + diff;
+    }
+
+    /// 79 cb : jns rel8
+    fn jns_rel8(&mut self) {
+        let diff = if self.is_sign() { 0 } else { self.get_code8(OPCODE_LENGTH) } as u32;
+        self.eip += OPCODE_LENGTH + IMM8_LENGTH + diff;
+    }
+
+    /// 7C cb : jl rel8
+    fn jl_rel8(&mut self) {
+        let diff = if self.is_sign() != self.is_overflow() {
+            self.get_code8(OPCODE_LENGTH)
+        } else {
+            0
+        } as u32;
+        self.eip += OPCODE_LENGTH + IMM8_LENGTH + diff;
+    }
+
+    /// 7D cb : jge rel8
+
+    /// 7E cb : jle rel8
+    fn jle_rel8(&mut self) {
+        let diff = if self.is_zero() || self.is_sign() != self.is_overflow() {
+            self.get_code8(OPCODE_LENGTH)
+        } else {
+            0
+        } as u32;
+        self.eip += OPCODE_LENGTH + IMM8_LENGTH + diff;
+    }
+
+    /// 7F cb : jg rel8
 
     /// 81 /0 id sz : add r/m32 imm32
     fn add_rm32_imm32(&mut self, modrm: &modrm::ModRM) {
@@ -735,5 +819,21 @@ impl Emulator {
         } else {
             self.eflags &= !OVERFLOW_FLAG;
         }
+    }
+
+    fn is_carry(&self) -> bool {
+        self.eflags & CARRY_FLAG != 0
+    }
+
+    fn is_zero(&self) -> bool {
+        self.eflags & ZERO_FLAG != 0
+    }
+
+    fn is_sign(&self) -> bool {
+        self.eflags & SIGN_FLAG != 0
+    }
+
+    fn is_overflow(&self) -> bool {
+        self.eflags & OVERFLOW_FLAG != 0
     }
 }
