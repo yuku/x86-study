@@ -101,6 +101,9 @@ impl Emulator {
             0x31 => self.xor_rm32_r32(),
             0x33 => self.xor_r32_rm32(),
             0x35 => self.xor_eax_imm32(),
+            0x39 => self.cmp_rm32_r32(),
+            0x3B => self.cmp_r32_rm32(),
+            0x3D => self.cmp_eax_imm32(),
             0x50...0x57 => self.push_r32(),
             0x58...0x5F => self.pop_r32(),
             0x68 => self.push_imm32(),
@@ -113,6 +116,7 @@ impl Emulator {
                     4 => self.and_rm32_imm32(&modrm),
                     5 => self.sub_rm32_imm32(&modrm),
                     6 => self.xor_rm32_imm32(&modrm),
+                    7 => self.cmp_rm32_imm32(&modrm),
                     _ => panic!(format!("not implemented: 81 /{}", modrm.reg)),
                 }
             },
@@ -124,6 +128,7 @@ impl Emulator {
                     4 => self.and_rm32_imm8(&modrm),
                     5 => self.sub_rm32_imm8(&modrm),
                     6 => self.xor_rm32_imm8(&modrm),
+                    7 => self.cmp_rm32_imm8(&modrm),
                     _ => panic!(format!("not implemented: 83 /{}", modrm.reg)),
                 }
             },
@@ -302,6 +307,35 @@ impl Emulator {
         self.eip += OPCODE_LENGTH + IMM32_LENGTH;
     }
 
+    /// 39 /r sz : cmp r/m32 r32
+    fn cmp_rm32_r32(&mut self) {
+        let modrm = modrm::ModRM::parse(self);
+        let rm32 = self.get_rm32(&modrm);
+        let r32 = self.get_r32(&modrm);
+        let result = (Wrapping(rm32 as u64) - Wrapping(r32 as u64)).0;
+        self.update_eflags(rm32, r32, result);
+        self.eip += OPCODE_LENGTH + modrm.length;
+    }
+
+    /// 3B /r sz : cmp r32 r/m32
+    fn cmp_r32_rm32(&mut self) {
+        let modrm = modrm::ModRM::parse(self);
+        let r32 = self.get_r32(&modrm);
+        let rm32 = self.get_rm32(&modrm);
+        let result = (Wrapping(r32 as u64) - Wrapping(rm32 as u64)).0;
+        self.update_eflags(r32, rm32, result);
+        self.eip += OPCODE_LENGTH + modrm.length;
+    }
+
+    /// 3D id sz : cmp eax imm32
+    fn cmp_eax_imm32(&mut self) {
+        let eax = self.get_register32(EAX as u8);
+        let imm32 = self.get_code32(OPCODE_LENGTH);
+        let result = (Wrapping(eax as u64) - Wrapping(imm32 as u64)).0;
+        self.update_eflags(eax, imm32, result);
+        self.eip += OPCODE_LENGTH + IMM32_LENGTH;
+    }
+
     /// 50 sz : push eax
     /// 51 sz : push ecx
     /// 52 sz : push edx
@@ -388,6 +422,15 @@ impl Emulator {
         self.eip += OPCODE_LENGTH + modrm.length + IMM32_LENGTH;
     }
 
+    /// 81 /7 ib : cmp r/m32 imm32
+    fn cmp_rm32_imm32(&mut self, modrm: &modrm::ModRM) {
+        let rm32 = self.get_rm32(&modrm);
+        let imm32 = self.get_code32(OPCODE_LENGTH + modrm.length);
+        let result = (Wrapping(rm32 as u64) - Wrapping(imm32 as u64)).0;
+        self.update_eflags(rm32, imm32, result);
+        self.eip += OPCODE_LENGTH + modrm.length + IMM32_LENGTH;
+    }
+
     /// 83 /0 ib sz : add r/m32 imm8
     fn add_rm32_imm8(&mut self, modrm: &modrm::ModRM) {
         let rm32 = self.get_rm32(&modrm);
@@ -427,6 +470,15 @@ impl Emulator {
         let rm32 = self.get_rm32(&modrm);
         let imm8 = self.get_code8(OPCODE_LENGTH + modrm.length) as u32;
         self.set_rm32(&modrm, rm32 ^ imm8);
+        self.eip += OPCODE_LENGTH + modrm.length + IMM8_LENGTH;
+    }
+
+    /// 83 /7 ib : cmp r/m32 imm8
+    fn cmp_rm32_imm8(&mut self, modrm: &modrm::ModRM) {
+        let rm32 = self.get_rm32(&modrm);
+        let imm8 = self.get_code8(OPCODE_LENGTH + modrm.length) as u32;
+        let result = (Wrapping(rm32 as u64) - Wrapping(imm8 as u64)).0;
+        self.update_eflags(rm32, imm8, result);
         self.eip += OPCODE_LENGTH + modrm.length + IMM8_LENGTH;
     }
 
