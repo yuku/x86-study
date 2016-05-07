@@ -79,7 +79,7 @@ impl Emulator {
     fn execute(&mut self) {
         let code = self.get_code8(0);
 
-        println!("EAX = 0x{:08X}, EIP = 0x{:08X}, Code = 0x{:02X}", self.get_register32(EAX as u8), self.eip, code);
+        println!("EIP = 0x{:08X}, Code = 0x{:02X}", self.eip, code);
 
         match code {
             0x01 => self.add_rm32_r32(),
