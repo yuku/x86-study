@@ -99,6 +99,8 @@ impl Emulator {
             0x35 => self.xor_eax_imm32(),
             0x50...0x57 => self.push_r32(),
             0x58...0x5F => self.pop_r32(),
+            0x68 => self.push_imm32(),
+            0x6A => self.push_imm8(),
             0x81 => {
                 let modrm = modrm::ModRM::parse(self);
                 match modrm.reg {
@@ -317,6 +319,20 @@ impl Emulator {
         let value = self.pop32();
         self.set_register32(index, value);
         self.eip += OPCODE_LENGTH;
+    }
+
+    /// 68 id sz : push imm32
+    fn push_imm32(&mut self) {
+        let imm32 = self.get_code32(OPCODE_LENGTH);
+        self.push32(imm32);
+        self.eip += OPCODE_LENGTH + IMM32_LENGTH;
+    }
+
+    /// 6A ib : push imm8
+    fn push_imm8(&mut self) {
+        let imm8 = self.get_code8(OPCODE_LENGTH);
+        self.push32(imm8 as u32);
+        self.eip += OPCODE_LENGTH + IMM8_LENGTH;
     }
 
     /// 81 /0 id sz : add r/m32 imm32
