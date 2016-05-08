@@ -11,7 +11,7 @@ const IMM8_LENGTH: u32 = 1;
 
 /// 01 /r sz : add r/m32 r32
 pub fn add_rm32_r32(emu: &mut emulator::Emulator) {
-    let modrm = modrm::ModRM::parse(emu);
+    let modrm = modrm::ModRM::parse32(emu);
     let rm32 = emu.get_rm32(&modrm);
     let r32 = emu.get_r32(&modrm);
     let result = (Wrapping(rm32 as u64) + Wrapping(r32 as u64)).0;
@@ -22,7 +22,7 @@ pub fn add_rm32_r32(emu: &mut emulator::Emulator) {
 
 /// 03 /r sz : add r32 r/m32
 pub fn add_r32_rm32(emu: &mut emulator::Emulator) {
-    let modrm = modrm::ModRM::parse(emu);
+    let modrm = modrm::ModRM::parse32(emu);
     let r32 = emu.get_r32(&modrm);
     let rm32 = emu.get_rm32(&modrm);
     let result = (Wrapping(r32 as u64) + Wrapping(rm32 as u64)).0;
@@ -43,7 +43,7 @@ pub fn add_eax_imm32(emu: &mut emulator::Emulator) {
 
 /// 09 /r rz : or r/m32 r32
 pub fn or_rm32_r32(emu: &mut emulator::Emulator) {
-    let modrm = modrm::ModRM::parse(emu);
+    let modrm = modrm::ModRM::parse32(emu);
     let rm32 = emu.get_rm32(&modrm);
     let r32 = emu.get_r32(&modrm);
     emu.set_rm32(&modrm, rm32 | r32);
@@ -52,7 +52,7 @@ pub fn or_rm32_r32(emu: &mut emulator::Emulator) {
 
 /// 0B /r sz : or r32 r/m32
 pub fn or_r32_rm32(emu: &mut emulator::Emulator) {
-    let modrm = modrm::ModRM::parse(emu);
+    let modrm = modrm::ModRM::parse32(emu);
     let r32 = emu.get_r32(&modrm);
     let rm32 = emu.get_rm32(&modrm);
     emu.set_r32(&modrm, r32 | rm32);
@@ -69,7 +69,7 @@ pub fn or_eax_imm32(emu: &mut emulator::Emulator) {
 
 /// 21 /r sz : and r/m32 r32
 pub fn and_rm32_r32(emu: &mut emulator::Emulator) {
-    let modrm = modrm::ModRM::parse(emu);
+    let modrm = modrm::ModRM::parse32(emu);
     let rm32 = emu.get_rm32(&modrm);
     let r32 = emu.get_r32(&modrm);
     emu.set_rm32(&modrm, rm32 & r32);
@@ -78,7 +78,7 @@ pub fn and_rm32_r32(emu: &mut emulator::Emulator) {
 
 /// 23 /r sz : and r32 r/m32
 pub fn and_r32_rm32(emu: &mut emulator::Emulator) {
-    let modrm = modrm::ModRM::parse(emu);
+    let modrm = modrm::ModRM::parse32(emu);
     let r32 = emu.get_r32(&modrm);
     let rm32 = emu.get_rm32(&modrm);
     emu.set_r32(&modrm, r32 & rm32);
@@ -95,7 +95,7 @@ pub fn and_eax_imm32(emu: &mut emulator::Emulator) {
 
 /// 29 /r sz : sub r/m32 r32
 pub fn sub_rm32_r32(emu: &mut emulator::Emulator) {
-    let modrm = modrm::ModRM::parse(emu);
+    let modrm = modrm::ModRM::parse32(emu);
     let rm32 = emu.get_rm32(&modrm);
     let r32 = emu.get_r32(&modrm);
     let result = (Wrapping(rm32 as u64) - Wrapping(r32 as u64)).0;
@@ -106,7 +106,7 @@ pub fn sub_rm32_r32(emu: &mut emulator::Emulator) {
 
 /// 2B /r sz : sub r32 r/m32
 pub fn sub_r32_rm32(emu: &mut emulator::Emulator) {
-    let modrm = modrm::ModRM::parse(emu);
+    let modrm = modrm::ModRM::parse32(emu);
     let r32 = emu.get_r32(&modrm);
     let rm32 = emu.get_rm32(&modrm);
     let result = (Wrapping(r32 as u64) - Wrapping(rm32 as u64)).0;
@@ -127,7 +127,7 @@ pub fn sub_eax_imm32(emu: &mut emulator::Emulator) {
 
 /// 31 /r sz : xor r/m32 r32
 pub fn xor_rm32_r32(emu: &mut emulator::Emulator) {
-    let modrm = modrm::ModRM::parse(emu);
+    let modrm = modrm::ModRM::parse32(emu);
     let rm32 = emu.get_rm32(&modrm);
     let r32 = emu.get_r32(&modrm);
     emu.set_rm32(&modrm, rm32 ^ r32);
@@ -136,7 +136,7 @@ pub fn xor_rm32_r32(emu: &mut emulator::Emulator) {
 
 /// 33 /r sz : xor r32 r/m32
 pub fn xor_r32_rm32(emu: &mut emulator::Emulator) {
-    let modrm = modrm::ModRM::parse(emu);
+    let modrm = modrm::ModRM::parse32(emu);
     let r32 = emu.get_r32(&modrm);
     let rm32 = emu.get_rm32(&modrm);
     emu.set_rm32(&modrm, r32 ^ rm32);
@@ -153,7 +153,7 @@ pub fn xor_eax_imm32(emu: &mut emulator::Emulator) {
 
 /// 39 /r sz : cmp r/m32 r32
 pub fn cmp_rm32_r32(emu: &mut emulator::Emulator) {
-    let modrm = modrm::ModRM::parse(emu);
+    let modrm = modrm::ModRM::parse32(emu);
     let rm32 = emu.get_rm32(&modrm);
     let r32 = emu.get_r32(&modrm);
     let result = (Wrapping(rm32 as u64) - Wrapping(r32 as u64)).0;
@@ -163,7 +163,7 @@ pub fn cmp_rm32_r32(emu: &mut emulator::Emulator) {
 
 /// 3B /r sz : cmp r32 r/m32
 pub fn cmp_r32_rm32(emu: &mut emulator::Emulator) {
-    let modrm = modrm::ModRM::parse(emu);
+    let modrm = modrm::ModRM::parse32(emu);
     let r32 = emu.get_r32(&modrm);
     let rm32 = emu.get_rm32(&modrm);
     let result = (Wrapping(r32 as u64) - Wrapping(rm32 as u64)).0;
@@ -420,7 +420,7 @@ pub fn cmp_rm32_imm8(emu: &mut emulator::Emulator, modrm: &modrm::ModRM) {
 
 /// 89 /r sz : mov r/m32 r32
 pub fn mov_rm32_r32(emu: &mut emulator::Emulator) {
-    let modrm = modrm::ModRM::parse(emu);
+    let modrm = modrm::ModRM::parse32(emu);
     let r32 = emu.get_r32(&modrm);
     emu.set_rm32(&modrm, r32);
     emu.eip += OPCODE_LENGTH + modrm.length;
@@ -428,7 +428,7 @@ pub fn mov_rm32_r32(emu: &mut emulator::Emulator) {
 
 /// 8B /r sz : mov r32 r/m32
 pub fn mov_r32_rm32(emu: &mut emulator::Emulator) {
-    let modrm = modrm::ModRM::parse(emu);
+    let modrm = modrm::ModRM::parse32(emu);
     let rm32 = emu.get_rm32(&modrm);
     emu.set_r32(&modrm, rm32);
     emu.eip += OPCODE_LENGTH + modrm.length;
@@ -436,8 +436,8 @@ pub fn mov_r32_rm32(emu: &mut emulator::Emulator) {
 
 /// 8D /r sz : lea r32 m
 pub fn lea_r32_m(emu: &mut emulator::Emulator) {
-    let modrm = modrm::ModRM::parse(emu);
-    let address = modrm.calc_memory_address(emu);
+    let modrm = modrm::ModRM::parse32(emu);
+    let address = modrm.calc_memory_address32(emu);
     emu.set_r32(&modrm, address);
     emu.eip += OPCODE_LENGTH + modrm.length;
 }
@@ -469,7 +469,7 @@ pub fn ret(emu: &mut emulator::Emulator) {
 
 /// C7 /0 id sz : mov r/m32 imm32
 pub fn mov_rm32_imm32(emu: &mut emulator::Emulator) {
-    let modrm = modrm::ModRM::parse(emu);
+    let modrm = modrm::ModRM::parse32(emu);
     let imm32 = emu.get_code32(OPCODE_LENGTH + modrm.length);
     emu.set_rm32(&modrm, imm32);
     emu.eip += OPCODE_LENGTH + modrm.length + IMM32_LENGTH;

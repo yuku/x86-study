@@ -117,7 +117,7 @@ impl Emulator {
             0x7E => instructions::jle_rel8(self),
             0x7F => instructions::jg_rel8(self),
             0x81 => {
-                let modrm = modrm::ModRM::parse(self);
+                let modrm = modrm::ModRM::parse32(self);
                 match modrm.reg {
                     0 => instructions::add_rm32_imm32(self, &modrm),
                     1 => instructions::or_rm32_imm32(self, &modrm),
@@ -129,7 +129,7 @@ impl Emulator {
                 }
             },
             0x83 => {
-                let modrm = modrm::ModRM::parse(self);
+                let modrm = modrm::ModRM::parse32(self);
                 match modrm.reg {
                     0 => instructions::add_rm32_imm8(self, &modrm),
                     1 => instructions::or_rm32_imm8(self, &modrm),
@@ -152,14 +152,14 @@ impl Emulator {
             0xE9 => instructions::near_jump(self),
             0xEB => instructions::short_jump(self),
             0xF7 => {
-                let modrm = modrm::ModRM::parse(self);
+                let modrm = modrm::ModRM::parse32(self);
                 match modrm.reg {
                     3 => instructions::neg_rm32(self, &modrm),
                     _ => panic!(format!("not implemented: F7 /{}", modrm.reg)),
                 }
             },
             0xFF => {
-                let modrm = modrm::ModRM::parse(self);
+                let modrm = modrm::ModRM::parse32(self);
                 match modrm.reg {
                     0 => instructions::inc_rm32(self, &modrm),
                     _ => panic!(format!("not implemented: FF /{}", modrm.reg)),
@@ -214,7 +214,7 @@ impl Emulator {
         if modrm.mod_ == 3 {
             self.get_register32(modrm.rm)
         } else {
-            let address = modrm.calc_memory_address(self);
+            let address = modrm.calc_memory_address32(self);
             self.get_memory32(address)
         }
     }
@@ -223,7 +223,7 @@ impl Emulator {
         if modrm.mod_ == 3 {
             self.set_register32(modrm.rm, value);
         } else {
-            let address = modrm.calc_memory_address(self);
+            let address = modrm.calc_memory_address32(self);
             self.set_memory32(address, value);
         }
     }

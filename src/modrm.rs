@@ -15,7 +15,7 @@ pub struct ModRM {
 }
 
 impl ModRM {
-    pub fn parse(emu: &mut emulator::Emulator) -> ModRM {
+    pub fn parse32(emu: &mut emulator::Emulator) -> ModRM {
         let code = emu.get_code8(instructions::OPCODE_LENGTH);
 
         let mut modrm = ModRM::default();
@@ -39,7 +39,7 @@ impl ModRM {
         modrm
     }
 
-    pub fn calc_memory_address(&self, emu: &emulator::Emulator) -> u32 {
+    pub fn calc_memory_address32(&self, emu: &emulator::Emulator) -> u32 {
         if self.mod_ == 0 {
             match self.rm {
                 4 => emu.eval_sib(&self),
