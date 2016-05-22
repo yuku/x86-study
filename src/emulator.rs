@@ -11,7 +11,6 @@ const REGISTER_NAMES: [&'static str; REGISTERS_COUNT] = [
 pub const EAX: usize = 0;
 pub const ESP: usize = 4;
 pub const EBP: usize = 5;
-const MEMORY_SIZE: usize = 1024 * 1024;
 const CARRY_FLAG: u32 = 1 << 0;
 const ZERO_FLAG: u32 = 1 << 6;
 const SIGN_FLAG: u32 = 1 << 7;
@@ -22,7 +21,8 @@ pub struct Emulator {
     registers: [u32; REGISTERS_COUNT],
     eflags: u32,
     pub eip: u32,
-    memory: [u8; MEMORY_SIZE],
+    memory_size: usize,
+    memory: Vec<u8>,
 }
 
 impl Default for Emulator {
@@ -31,23 +31,26 @@ impl Default for Emulator {
             registers: [0; REGISTERS_COUNT],
             eflags: Default::default(),
             eip: Default::default(),
-            memory: [0; MEMORY_SIZE],
+            memory_size: Default::default(),
+            memory: Default::default(),
         }
     }
 }
 
 impl Emulator {
-    pub fn new(eip: u32, esp: u32) -> Emulator {
+    pub fn new(memory_size: usize, eip: u32, esp: u32) -> Emulator {
         let mut emu = Emulator::default();
         emu.registers[ESP] = esp;
         emu.eip = eip;
+        emu.memory_size = memory_size;
+        emu.memory = vec![0; memory_size];
         emu
     }
 
     pub fn load(&mut self, path: &str) {
         let mut f = File::open(path)
             .expect(&format!("failed to read {}", path));
-        f.read(&mut self.memory[(self.eip as usize)..MEMORY_SIZE])
+        f.read(&mut self.memory[(self.eip as usize)..self.memory_size])
             .expect(&format!("filed to load {} to memory", path));
     }
 
